@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trustworthy RL for 6G — Interactive Demo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#0b0d14;--bg2:#13161f;--bg3:#1c2030;--bg4:#232840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#dde1f0;--text2:#8890b0;--text3:#4a5070;
+  --blue:#4f9cf9;--blue-bg:rgba(79,156,249,0.12);
+  --teal:#2dd4bf;--teal-bg:rgba(45,212,191,0.10);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.10);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.10);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.10);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.10);
+  --r:8px;--rlg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* topbar */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 18px;display:flex;align-items:center;gap:14px;height:50px;flex-shrink:0}
+.logo{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.logo .pill{background:linear-gradient(135deg,#4f9cf9,#a78bfa);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.5px}
+.logo .sub{font-size:11px;font-weight:400;color:var(--text2)}
+.spacer{flex:1}
+.paper-btn{font-size:11px;color:var(--blue);border:1px solid rgba(79,156,249,.3);border-radius:5px;padding:3px 10px;text-decoration:none;transition:.12s}
+.paper-btn:hover{background:var(--blue-bg)}
+
+/* layout */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* sidebar */
+.sidebar{width:190px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 0;overflow-y:auto}
+.sb-section{padding:0 10px 4px}
+.sb-lbl{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:10px 6px 5px}
+.nav-btn{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;color:var(--text2);font-size:12px;border:none;background:none;width:100%;text-align:left;transition:.12s}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--blue-bg);color:var(--blue)}
+.nav-btn svg{width:14px;height:14px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2}
+.sb-div{height:1px;background:var(--border);margin:8px 10px}
+.sc-lbl{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:10px 16px 5px}
+.sc-item{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;font-size:12px;color:var(--text2);border-left:3px solid transparent;transition:.12s}
+.sc-item:hover{color:var(--text);background:var(--bg3)}
+.sc-item.active{color:var(--text);border-left-color:var(--blue);background:var(--blue-bg)}
+.sc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sc-ev{font-size:10px;color:var(--text3);margin-left:auto}
+
+/* main */
+.main{flex:1;overflow-y:auto;padding:18px;scroll-behavior:smooth}
+.panel{display:none}.panel.active{display:block}
+
+/* cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:16px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:14px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:11px 13px}
+.metric .lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.metric .val{font-size:21px;font-weight:700;line-height:1.1}
+.metric .sub{font-size:10px;color:var(--text3);margin-top:2px}
+.g{color:var(--teal)}.w{color:var(--amber)}.r{color:var(--red)}.b{color:var(--blue)}
+
+/* step controls */
+.ctrl{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.ctrl label{font-size:11px;color:var(--text2);white-space:nowrap}
+.ctrl input[type=range]{flex:1;min-width:100px;height:4px;-webkit-appearance:none;appearance:none;background:var(--bg3);border-radius:2px;outline:none}
+.ctrl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--blue);cursor:pointer}
+.snum{font-size:12px;font-weight:600;color:var(--text);min-width:48px}
+.btn{padding:5px 11px;font-size:11px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:4px}
+.btn:hover{color:var(--text);border-color:var(--blue)}
+.btn.on{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+
+/* timeline */
+.tl{position:relative;height:26px;border-radius:var(--r);overflow:hidden;cursor:crosshair;border:1px solid var(--border);margin-bottom:12px}
+.tl canvas{position:absolute;inset:0;width:100%;height:100%}
+.tl-cur{position:absolute;top:0;bottom:0;width:2px;background:#fff;pointer-events:none;opacity:.7}
+
+/* step info */
+.sinfo{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.kv{font-size:11px;color:var(--text2)}.kv strong{color:var(--text);font-weight:600}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.03em}
+.badge.ens{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(79,156,249,.25)}
+.badge.fb{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+.badge.sh{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+
+/* RM pill */
+.rm{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.04em}
+.rm-IDLE{background:rgba(74,80,112,.2);color:var(--text2)}
+.rm-URLLC_ACTIVE{background:var(--blue-bg);color:var(--blue)}
+.rm-URLLC_WARNING{background:var(--amber-bg);color:var(--amber)}
+.rm-URLLC_CRITICAL{background:var(--red-bg);color:var(--red)}
+.rm-VIOLATION{background:rgba(248,113,113,.2);color:var(--red)}
+.rm-NA{background:rgba(74,80,112,.2);color:var(--text3)}
+
+/* users */
+.ugrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:12px}
+.uc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:6px 7px;font-size:10px;transition:.1s;text-align:center}
+.uc.sel{border:2px solid var(--blue);background:var(--blue-bg)}
+.uc.sel.fb{border-color:var(--amber);background:var(--amber-bg)}
+.uc.sel.sh{border-color:var(--red);background:var(--red-bg)}
+.uc.viol{border-color:var(--red);background:var(--red-bg)}
+.uc .uid{font-weight:700;font-size:10px;color:var(--text);margin-top:2px}
+.uc .tt{font-size:8px;padding:1px 4px;border-radius:3px;display:inline-block;margin:1px 0;font-weight:700}
+.tt-u{background:var(--blue-bg);color:var(--blue)}
+.tt-e{background:var(--teal-bg);color:var(--teal)}
+.tt-m{background:var(--purple-bg);color:var(--purple)}
+.wb{height:3px;border-radius:2px;background:var(--border2);margin:3px 0;overflow:hidden}
+.wf{height:100%;border-radius:2px;background:var(--teal)}
+.wf.w{background:var(--amber)}.wf.r{background:var(--red)}
+.sr{display:flex;justify-content:space-between;color:var(--text3);font-size:9px}
+.uc-icon{width:28px;height:28px;margin:0 auto 2px;display:block}
+
+/* chart card */
+.cc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:14px}
+.cc .ct{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* log */
+.log-wrap{background:var(--bg);border:1px solid var(--border);border-radius:var(--rlg);height:calc(100vh - 180px);overflow-y:auto;font-family:'SF Mono','Fira Code',monospace;font-size:11px;padding:8px}
+.le{padding:2px 4px;border-bottom:1px solid var(--border);line-height:1.6}
+.le .ts{color:var(--text3);margin-right:6px}
+.le .pe{color:var(--blue)}.le .pf{color:var(--amber)}.le .ps{color:var(--red)}.le .pb{color:var(--green)}
+.le .pen{color:var(--red)}
+select{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:4px 8px;border-radius:var(--r);font-size:11px;cursor:pointer}
+
+/* comparison */
+.cmp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:13px}
+.cmp-card.best{border-color:var(--blue)}
+.cmp-card .cm{font-size:12px;font-weight:700;margin-bottom:8px}
+.cmp-card .cr{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.cmp-card .cr:last-child{border-bottom:none}
+.pass{color:var(--teal)}.fail{color:var(--red)}
+
+/* scrollbar */
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Network animation canvas */
+#net-canvas{width:100%;display:block;border-radius:var(--rlg);border:1px solid var(--border)}
+
+/* FSM */
+.fsm-wrap{position:relative;width:100%}
+#fsm-svg{width:100%;display:block}
+.fsm-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text2);margin-top:8px}
+.fsm-legend span{display:flex;align-items:center;gap:5px}
+.fsm-legend .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Reward decomp */
+.rd-weights{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.rd-w{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
+.rd-w .wn{font-size:22px;font-weight:700}
+.rd-w .wl{font-size:10px;color:var(--text2);margin-top:2px}
+.rd-w .ws{font-size:10px;color:var(--text3)}
+
+/* Agent comm */
+#comm-canvas{width:100%;display:block;border-radius:var(--rlg);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo">
+    <span class="pill">6G</span>
+    Trustworthy RL Demo
+    <span class="sub">Near-RT RIC · URLLC · Stressed environment</span>
+  </div>
+  <div class="spacer"></div>
+  <a class="paper-btn" href="#" target="_blank">📄 Paper</a>
+</div>
+
+<div class="body">
+<div class="sidebar">
+  <div class="sb-section">
+    <div class="sb-lbl">Panels</div>
+    <button class="nav-btn active" data-p="netenv">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 100 18A9 9 0 0012 3M12 3v9"/></svg>
+      Network environment
+    </button>
+    <button class="nav-btn" data-p="netinfo">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Network info
+    </button>
+    <button class="nav-btn" data-p="comm">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Agent ↔ RIC loop
+    </button>
+    <button class="nav-btn" data-p="flow">
+      <svg viewBox="0 0 24 24"><path d="M8 6l4-4 4 4M8 18l4 4 4-4M4 12h16"/></svg>
+      Decision flow <span style="font-size:9px;color:var(--text3)">(Safety)</span>
+    </button>
+
+    <button class="nav-btn" data-p="fsm">
+      <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="M7 12h5M17 6l-3 4M17 18l-3-4"/></svg>
+      Reward Machine (FSM) <span style="font-size:9px;color:var(--text3)">(Robustness)</span>
+    </button>
+    <button class="nav-btn" data-p="reward">
+      <svg viewBox="0 0 24 24"><path d="M3 17l4-8 4 4 4-6 4 10"/></svg>
+      Reward decomposition <span style="font-size:9px;color:var(--text3)">(Explainability)</span>
+    </button>
+    <button class="nav-btn" data-p="step">
+      <svg viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"/></svg>
+      Step-by-step
+    </button>
+    <button class="nav-btn" data-p="log">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Decision log <span style="font-size:9px;color:var(--text3)">(Transparency)</span>
+    </button>
+    <button class="nav-btn" data-p="cmp">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Comparison
+    </button>
+  </div>
+  <div class="sb-div"></div>
+  <div class="sc-lbl">Scenario</div>
+  <div id="sc-list"></div>
+</div>
+
+<div class="main">
+
+<!-- PANEL: Network Environment -->
+<div class="panel active" id="panel-netenv">
+  <div class="metrics" id="net-metrics"></div>
+  <div class="ctrl">
+    <label>Step</label>
+    <input type="range" id="net-sl" min="0" max="199" value="0">
+    <span class="snum" id="net-sn">0</span>
+    <button class="btn" id="net-play">▶ Play</button>
+    <button class="btn" id="net-prev">← Event</button>
+    <button class="btn" id="net-next">Event →</button>
+  </div>
+  <div class="tl" id="net-tl"><canvas id="net-tlc"></canvas><div class="tl-cur" id="net-tlcur"></div></div>
+  <canvas id="net-canvas" height="360"></canvas>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-top:8px;margin-bottom:14px">
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block"></span>URLLC user</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--teal);display:inline-block"></span>eMBB user</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--purple);display:inline-block"></span>mMTC user</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--red);display:inline-block"></span>Fallback selected</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--amber);display:inline-block"></span>Shield selected</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--red);display:inline-block"></span>QoS violation</span>
+    <span style="color:var(--text3)">Ring size = buffer · Ring fill = waiting time deadline %</span>
+  </div>
+  <div class="row2">
+    <div class="cc"><div class="ct">Allocated RBs per user — this step</div><div style="position:relative;height:130px"><canvas id="net-rb" role="img" aria-label="RB allocation"></canvas></div></div>
+    <div class="cc"><div class="ct">Interference level over episode</div><div style="position:relative;height:130px"><canvas id="net-int" role="img" aria-label="Interference"></canvas></div></div>
+  </div>
+</div>
+
+<!-- PANEL: Network Info -->
+<div class="panel" id="panel-netinfo">
+
+  <!-- Topology canvas -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Network topology — 6G resource allocation environment</div>
+    <canvas id="netinfo-canvas" height="280" style="width:100%;display:block;border-radius:var(--r)"></canvas>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-top:8px">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block"></span>URLLC user</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--teal);display:inline-block"></span>eMBB user</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--purple);display:inline-block"></span>mMTC user</span>
+      <span style="color:var(--text3)">Bar width = allocated RBs · Ring = waiting time</span>
+    </div>
+  </div>
+
+  <!-- Key parameters as annotated topology overlay -->
+  <div class="row2" style="margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="metric"><div class="lbl">Users</div><div class="val b">N = 10</div><div class="sub">per episode</div></div>
+      <div class="metric"><div class="lbl">Resource blocks</div><div class="val b">RB = 20</div><div class="sub">per time slot</div></div>
+      <div class="metric"><div class="lbl">Time slot</div><div class="val b">Δt = 1ms</div><div class="sub">per control step</div></div>
+      <div class="metric"><div class="lbl">URLLC deadline</div><div class="val g">L_max = 10ms</div><div class="sub">packet queuing</div></div>
+      <div class="metric"><div class="lbl">RL decision budget</div><div class="val g">&lt;1ms</div><div class="sub">per step</div></div>
+      <div class="metric"><div class="lbl">Reliability target</div><div class="val g">99.99999%</div><div class="sub">7-nines URLLC</div></div>
+      <div class="metric"><div class="lbl">Buffer capacity</div><div class="val">Q_max = 20</div><div class="sub">packets/user</div></div>
+      <div class="metric"><div class="lbl">Bandwidth</div><div class="val">100 MHz</div><div class="sub">shared</div></div>
+    </div>
+
+    <!-- Traffic types -->
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Service types</div>
+      <div style="display:flex;flex-direction:column;gap:7px;font-size:11px">
+        <div style="background:var(--blue-bg);border:1px solid rgba(79,156,249,.2);border-radius:var(--r);padding:9px">
+          <div style="color:var(--blue);font-weight:700;margin-bottom:3px">URLLC — Ultra-Reliable Low-Latency</div>
+          <div style="color:var(--text2)">50% stressed · λ=2.5 pkt/slot · L_max=10ms · 99.99999%</div>
+        </div>
+        <div style="background:var(--teal-bg);border:1px solid rgba(45,212,191,.2);border-radius:var(--r);padding:9px">
+          <div style="color:var(--teal);font-weight:700;margin-bottom:3px">eMBB — Enhanced Mobile Broadband</div>
+          <div style="color:var(--text2)">40% · λ=2.0 pkt/slot · &lt;10ms · 99% · Priority: Low</div>
+        </div>
+        <div style="background:var(--purple-bg);border:1px solid rgba(167,139,250,.2);border-radius:var(--r);padding:9px">
+          <div style="color:var(--purple);font-weight:700;margin-bottom:3px">mMTC — Massive Machine Type Comms</div>
+          <div style="color:var(--text2)">10% · λ=0.5 pkt/slot · &lt;100ms · 99.9% · Priority: Medium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <!-- State space -->
+    <div class="card">
+      <div class="card-title">State space s(t) ∈ ℝ⁵³</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px"><div style="color:var(--blue);font-weight:700">Q(t) · 10</div><div style="color:var(--text2)">Buffer occupancy</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px"><div style="color:var(--teal);font-weight:700">H(t) · 10</div><div style="color:var(--text2)">Channel quality</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px"><div style="color:var(--purple);font-weight:700">τ · 10</div><div style="color:var(--text2)">Traffic type</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px"><div style="color:var(--amber);font-weight:700">W(t) · 10</div><div style="color:var(--text2)">Waiting time norm.</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px"><div style="color:var(--red);font-weight:700">V(t) · 10</div><div style="color:var(--text2)">QoS violation flag</div></div>
+        <div style="background:var(--bg3);border-radius:var(--r);padding:7px"><div style="color:var(--text2);font-weight:700">I,B,t · 3</div><div style="color:var(--text2)">Interference, BW, time</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text3)">Action: A = {0,…,9} — select priority user per slot</div>
+    </div>
+
+    <!-- Formulas -->
+    <div class="card">
+      <div class="card-title">Key formulas</div>
+      <div style="font-size:11px;color:var(--text2);line-height:2;font-family:'SF Mono','Fira Code',monospace">
+        <div style="color:var(--text3);font-size:9px">REWARD</div>
+        <div>r = 5·T + 50·R_U − 500·R_Q + 20·R_F</div>
+        <div style="color:var(--text3);font-size:9px;margin-top:6px">CHANNEL</div>
+        <div>h_i(t+1) = clip(h_i(t) + ε_h, 0.3, 1.0)</div>
+        <div style="color:var(--text3);font-size:9px;margin-top:6px">FAIRNESS (JFI)</div>
+        <div>JFI = (Σ T_i)² / (N · Σ T_i²)</div>
+        <div style="color:var(--text3);font-size:9px;margin-top:6px">RB ALLOCATION</div>
+        <div>Priority user → min(5, Q_a, B_rem)</div>
+        <div>Other URLLC → min(4, Q_i, B_rem)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stressed environment -->
+  <div class="card" style="border-color:rgba(248,113,113,.25);margin-bottom:0">
+    <div class="card-title" style="color:var(--red)">⚠ Stressed environment</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:11px;color:var(--text2);line-height:1.9">
+      <div>
+        <span style="color:var(--red)">▲</span> URLLC: <strong style="color:var(--text)">50%</strong> (vs 30%) ·
+        <span style="color:var(--red)">▲</span> λ: <strong style="color:var(--text)">2.5</strong> (vs 1.0)<br>
+        <span style="color:var(--red)">▼</span> Channel: <strong style="color:var(--text)">h∈[0.3,0.6]</strong> (vs [0.3,1.0])<br>
+        <span style="color:var(--red)">▲</span> Interference: <strong style="color:var(--text)">I∈[0.3,0.5]</strong> (vs [0.1,0.3])<br>
+        <span style="color:var(--red)">▲</span> Pre-loaded buffers: <strong style="color:var(--text)">5–10 pkts</strong>
+      </div>
+      <div>Forces W_i &gt; 0.7·L_max states that activate fallback and shield.
+      V1 achieves <span style="color:var(--teal)">100% reliability</span> and
+      <span style="color:var(--teal)">P99 = 0.933ms</span> even under these adversarial conditions.</div>
+    </div>
+  </div>
+
+</div><!-- /panel-netinfo -->
+
+<!-- PANEL: Agent-RIC Communication -->
+<div class="panel" id="panel-comm">
+  <div class="ctrl">
+    <label>Step</label>
+    <input type="range" id="comm-sl" min="0" max="199" value="0">
+    <span class="snum" id="comm-sn">0</span>
+    <button class="btn" id="comm-play">▶ Play</button>
+    <button class="btn" id="comm-prev">← Event</button>
+    <button class="btn" id="comm-next">Event →</button>
+  </div>
+  <div class="tl" id="comm-tl"><canvas id="comm-tlc"></canvas><div class="tl-cur" id="comm-tlcur"></div></div>
+  <div class="card">
+    <div class="card-title">Near-RT RIC ↔ 6G Environment — control loop</div>
+    <canvas id="comm-canvas" height="340"></canvas>
+  </div>
+  <div class="sinfo" id="comm-info"></div>
+  <div class="row2">
+    <div class="cc"><div class="ct">Decision latency — episode</div><div style="position:relative;height:130px"><canvas id="comm-lat" role="img" aria-label="Latency"></canvas></div></div>
+    <div class="cc"><div class="ct">Uncertainty + trust score</div><div style="position:relative;height:130px"><canvas id="comm-ut" role="img" aria-label="Uncertainty and trust"></canvas></div></div>
+  </div>
+</div>
+
+<!-- PANEL: Decision Flow -->
+<div class="panel" id="panel-flow">
+  <div class="ctrl">
+    <label>Step</label>
+    <input type="range" id="flow-sl" min="0" max="199" value="0">
+    <span class="snum" id="flow-sn">0</span>
+    <button class="btn" id="flow-play">▶ Play</button>
+    <button class="btn" id="flow-prev">← Event</button>
+    <button class="btn" id="flow-next">Event →</button>
+  </div>
+  <div class="tl" id="flow-tl"><canvas id="flow-tlc"></canvas><div class="tl-cur" id="flow-tlcur"></div></div>
+  <div class="card" style="padding:20px">
+    <canvas id="flow-canvas" height="480" style="width:100%;display:block"></canvas>
+  </div>
+  <div class="sinfo" id="flow-info"></div>
+</div>
+
+<!-- PANEL: Network Info -->
+
+<!-- PANEL: FSM -->
+<div class="panel" id="panel-fsm">
+  <div class="ctrl">
+    <label>Step</label>
+    <input type="range" id="fsm-sl" min="0" max="199" value="0">
+    <span class="snum" id="fsm-sn">0</span>
+    <button class="btn" id="fsm-play">▶ Play</button>
+    <button class="btn" id="fsm-prev">← Event</button>
+    <button class="btn" id="fsm-next">Event →</button>
+  </div>
+  <div class="tl" id="fsm-tl"><canvas id="fsm-tlc"></canvas><div class="tl-cur" id="fsm-tlcur"></div></div>
+  <div class="card">
+    <div class="card-title">Reward Machine — finite state automaton</div>
+    <canvas id="fsm-canvas" height="300" style="width:100%;display:block"></canvas>
+  </div>
+  <!-- Current step info -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Current step — live RM state</div>
+    <div id="fsm-step-info" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px"></div>
+    <div style="font-size:11px;color:var(--text2);padding:8px;background:var(--bg3);border-radius:var(--r)">
+      <strong style="color:var(--amber)">Why only IDLE and URLLC_ACTIVE in evaluation?</strong><br>
+      The framework works so effectively that URLLC waiting time never exceeds 30% of L<sub>max</sub> in these episodes (threshold for urllc_warning = 50%). 
+      WARNING, CRITICAL and VIOLATION states only appear during <em>training</em>, where 441/800 episodes had critical events. 
+      This is a <strong style="color:var(--teal)">positive result</strong> — the safety layers prevent deadline escalation entirely.
+    </div>
+  </div>
+
+  <!-- Static state descriptions -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:11px">
+      <div style="color:#4a5070;font-weight:700;margin-bottom:5px;font-size:12px">IDLE</div>
+      <div style="color:var(--text2);line-height:1.7">No URLLC traffic present.<br>Modifier: <strong style="color:var(--text)">×1.0</strong><br>Normal operation.</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--text3)">→ URLLC_ACTIVE<br>when urllc_present</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--blue);border-radius:var(--r);padding:10px;font-size:11px">
+      <div style="color:var(--blue);font-weight:700;margin-bottom:5px;font-size:12px">URLLC_ACTIVE</div>
+      <div style="color:var(--text2);line-height:1.7">URLLC packets queued.<br>Modifier: <strong style="color:var(--blue)">×1.2</strong><br>Slightly amplified reward.</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--text3)">→ WARNING if W≥0.5L<sub>max</sub></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--amber);border-radius:var(--r);padding:10px;font-size:11px">
+      <div style="color:var(--amber);font-weight:700;margin-bottom:5px;font-size:12px">URLLC_WARNING</div>
+      <div style="color:var(--text2);line-height:1.7">Wait ≥ 50% of L<sub>max</sub>.<br>Modifier: <strong style="color:var(--amber)">×1.5</strong><br>Reward amplified — urgency.</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--text3)">→ CRITICAL if W≥0.7L<sub>max</sub></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--red);border-radius:var(--r);padding:10px;font-size:11px">
+      <div style="color:var(--red);font-weight:700;margin-bottom:5px;font-size:12px">URLLC_CRITICAL</div>
+      <div style="color:var(--text2);line-height:1.7">Wait ≥ 70% of L<sub>max</sub>.<br>Modifier: <strong style="color:var(--red)">×2.0</strong><br>High urgency — triggers fallback.</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--text3)">→ VIOLATION if W&gt;L<sub>max</sub></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid #701f1f;border-radius:var(--r);padding:10px;font-size:11px">
+      <div style="color:#f87171cc;font-weight:700;margin-bottom:5px;font-size:12px">VIOLATION</div>
+      <div style="color:var(--text2);line-height:1.7">Deadline exceeded.<br>Modifier: <strong style="color:#f87171cc">×0.5</strong><br>Penalised — discourage misses.</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--text3)">Never reached in eval ✓</div>
+    </div>
+  </div>
+  <div class="cc" style="margin-bottom:14px">
+    <div class="ct">RM state over episode (IDLE=0, URLLC_ACTIVE=1)</div>
+    <div style="position:relative;height:110px"><canvas id="fsm-hist" role="img" aria-label="RM state history"></canvas></div>
+  </div>
+</div>
+
+<!-- PANEL: Reward decomposition -->
+<div class="panel" id="panel-reward">
+  <div class="ctrl">
+    <label>Step</label>
+    <input type="range" id="rwd-sl" min="0" max="199" value="0">
+    <span class="snum" id="rwd-sn">0</span>
+    <button class="btn" id="rwd-play">▶ Play</button>
+    <button class="btn" id="rwd-prev">← Event</button>
+    <button class="btn" id="rwd-next">Event →</button>
+  </div>
+  <div class="rd-weights">
+    <div class="rd-w"><div class="wn b">×5</div><div class="wl">Throughput weight</div><div class="ws">w_T = 5, α_T = 10</div></div>
+    <div class="rd-w"><div class="wn" style="color:var(--teal)">×50</div><div class="wl">URLLC bonus weight</div><div class="ws">w_U = 50, α_U = 1</div></div>
+    <div class="rd-w"><div class="wn r">−500</div><div class="wl">QoS penalty weight</div><div class="ws">w_Q = −500, α_Q = 20</div></div>
+    <div class="rd-w"><div class="wn" style="color:var(--purple)">×20</div><div class="wl">Fairness weight</div><div class="ws">w_F = 20, α_F = 3</div></div>
+  </div>
+  <div class="cc" style="margin-bottom:14px">
+    <div class="ct">Reward components — per step (this episode)</div>
+    <div style="position:relative;height:200px"><canvas id="rwd-area" role="img" aria-label="Reward components area chart"></canvas></div>
+    <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:var(--blue);display:inline-block"></span>Throughput</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:var(--teal);display:inline-block"></span>URLLC bonus</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:var(--red);display:inline-block"></span>QoS penalty</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:var(--purple);display:inline-block"></span>Fairness</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:#fff;display:inline-block"></span>Total reward</span>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="cc">
+      <div class="ct">This step — component breakdown</div>
+      <div style="position:relative;height:130px"><canvas id="rwd-bar" role="img" aria-label="Per step reward breakdown"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Cumulative reward — episode</div>
+      <div style="position:relative;height:130px"><canvas id="rwd-cum" role="img" aria-label="Cumulative reward"></canvas></div>
+    </div>
+  </div>
+  <div class="cc" style="margin-bottom:14px">
+    <div class="ct">URLLC reliability — cumulative</div>
+    <div style="position:relative;height:110px"><canvas id="rwd-rel" role="img" aria-label="Cumulative reliability"></canvas></div>
+  </div>
+</div>
+
+<!-- PANEL: Step-by-step -->
+<div class="panel" id="panel-step">
+  <div class="ctrl">
+    <label>Step</label>
+    <input type="range" id="step-sl" min="0" max="199" value="0">
+    <span class="snum" id="step-sn">0</span>
+    <button class="btn" id="step-play">▶ Play</button>
+    <button class="btn" id="step-prev">← Event</button>
+    <button class="btn" id="step-next">Event →</button>
+  </div>
+  <div class="tl" id="step-tl"><canvas id="step-tlc"></canvas><div class="tl-cur" id="step-tlcur"></div></div>
+  <div class="sinfo" id="step-info"></div>
+  <div class="ugrid" id="step-users"></div>
+  <div class="row2">
+    <div class="cc"><div class="ct">Reward this step</div><div style="position:relative;height:130px"><canvas id="step-rc" role="img" aria-label="Reward components"></canvas></div></div>
+    <div class="cc"><div class="ct">Latency — episode</div><div style="position:relative;height:130px"><canvas id="step-lat" role="img" aria-label="Latency"></canvas></div></div>
+  </div>
+</div>
+
+<!-- PANEL: Log -->
+<div class="panel" id="panel-log">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+    <select id="log-filter">
+      <option value="all">All decisions</option>
+      <option value="FALLBACK">Fallback only</option>
+      <option value="SHIELDED">Shield only</option>
+      <option value="plain">Ensemble decisions only</option>
+      <option value="single">Single DQN only</option>
+    </select>
+    <span style="font-size:11px;color:var(--text3)" id="log-count"></span>
+  </div>
+  <div class="log-wrap" id="log-wrap"></div>
+  <div id="log-note" style="display:none;margin-top:10px;background:var(--amber-bg);border:1px solid rgba(245,158,11,.25);border-radius:var(--r);padding:10px 14px;font-size:11px;color:var(--text2);line-height:1.7">
+    <strong style="color:var(--amber)">💡 Why does only 1 of 7 fallback steps show a penalty?</strong><br>
+    The fallback policy fires <em>preemptively</em> — it activates when uncertainty is high AND a URLLC user's waiting time exceeds 70% of the deadline, but before the deadline is actually missed.
+    In 6 of 7 cases the fallback successfully served the URLLC user in time, preventing any violation.
+    Only 1 step had an actual deadline breach (QoS penalty −500), meaning the packet had already exceeded L<sub>max</sub> before the decision could take effect.
+    <br><strong style="color:var(--text)">Fallback triggers ≠ deadline violations.</strong> The framework is proactive, not reactive.
+  </div>
+</div>
+
+<!-- PANEL: Comparison -->
+<div class="panel" id="panel-cmp">
+  <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+    <div class="metric"><div class="lbl">V1 reliability</div><div class="val g">100.00000%</div><div class="sub">target ≥ 99.99999%</div></div>
+    <div class="metric"><div class="lbl">V1 P99 latency</div><div class="val g">0.933 ms</div><div class="sub">budget &lt; 1ms ✓</div></div>
+    <div class="metric"><div class="lbl">V1 trust score</div><div class="val b">0.824</div><div class="sub">high-trust threshold 0.8</div></div>
+    <div class="metric"><div class="lbl">V1 avg reward</div><div class="val">259.20</div><div class="sub">paper result</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="cmp-grid"></div>
+  <div class="row2">
+    <div class="cc"><div class="ct">URLLC reliability — paper results</div><div style="position:relative;height:190px"><canvas id="cmp-rel" role="img" aria-label="Reliability comparison"></canvas></div></div>
+    <div class="cc"><div class="ct">P99 latency — paper results (ms)</div><div style="position:relative;height:190px"><canvas id="cmp-lat" role="img" aria-label="Latency comparison"></canvas></div></div>
+  </div>
+  <div class="cc" style="margin-bottom:14px">
+    <div class="ct">Total reward per step — V1 (normal) vs B1 (baseline)</div>
+    <div style="position:relative;height:150px"><canvas id="cmp-rew" role="img" aria-label="Reward comparison"></canvas></div>
+    <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text2)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:18px;height:2px;background:var(--blue);display:inline-block"></span>V1 Trustworthy RL</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:18px;height:2px;background:var(--red);border-top:2px dashed var(--red);display:inline-block"></span>B1 Vanilla DQN</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /body -->
+</div><!-- /app -->
+
+<script>
+let EMBEDDED_DATA = null; // loaded from demo_data.json
+
+// Paper results (hardcoded from paper, not model outputs)
+const PAPER = {
+  V1: { rel: 100.0, p99: 0.933, trust: 0.824, reward: 259.20, fb: '2.1%', sh: '0.12%' },
+  B1: { rel: 99.99958, p99: 0.404 },
+  B2: { rel: 99.99764, p99: 0.416 },
+  B3: { rel: 99.99959, p99: 0.316 }
+};
+
+let D = null;
+let SC = 'normal', STEP = 0;
+let playing = {}, timers = {};
+let charts = {};
+let animFrames = {};
+
+const PATH_COL = { ENSEMBLE:'#4f9cf9', FALLBACK_CRITICAL_URLLC:'#f59e0b', ENSEMBLE_SHIELDED:'#f87171' };
+const TT_COL = { 1:'#4f9cf9', 0:'#2dd4bf', 2:'#a78bfa' };
+const TT_STR = { 0:'eMBB', 1:'URLLC', 2:'mMTC' };
+const SC_META = {
+  normal:   { label:'Ensemble only',    dot:'#4f9cf9' },
+  fallback: { label:'Ensemble + Fallback',  dot:'#f59e0b' },
+  shield:   { label:'Full framework (E+FB+SH)',    dot:'#f87171' },
+  baseline: { label:'Normal RL (no trustworthy features)',   dot:'#4ade80' }
+};
+const RM_STATES = ['IDLE','URLLC_ACTIVE','URLLC_WARNING','URLLC_CRITICAL','VIOLATION'];
+const RM_COL = { IDLE:'#4a5070', URLLC_ACTIVE:'#4f9cf9', URLLC_WARNING:'#f59e0b', URLLC_CRITICAL:'#f87171', VIOLATION:'#e74c4c' };
+const RM_MOD = { IDLE:1.0, URLLC_ACTIVE:1.2, URLLC_WARNING:1.5, URLLC_CRITICAL:2.0, VIOLATION:0.5 };
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  // Show loading indicator
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  fetch('./demo_data.json')
+    .then(r => {
+      if (!r.ok) throw new Error('demo_data.json not found');
+      return r.json();
+    })
+    .then(raw => {
+      // Convert raw scenario data to compact format expected by dashboard
+      function compact(steps) {
+        return {
+          unc:       steps.map(s => Math.round(s.uncertainty*100)/100),
+          trust:     steps.map(s => Math.round(s.trust_score*1000)/1000),
+          lat:       steps.map(s => Math.round(s.latency_ms*10000)/10000),
+          path:      steps.map(s => s.decision_path),
+          rm:        steps.map(s => s.rm_state),
+          tp:        steps.map(s => Math.round(s.reward_components.throughput*10)/10),
+          ub:        steps.map(s => Math.round(s.reward_components.urllc_bonus*10)/10),
+          qp:        steps.map(s => Math.round(s.reward_components.qos_penalty*10)/10),
+          fa:        steps.map(s => Math.round(s.reward_components.fairness*100)/100),
+          tot:       steps.map(s => Math.round(s.reward_components.total*10000)/10000),
+          rel:       steps.map(s => Math.round(s.urllc_reliability_so_far*10000000)/10000000),
+          act:       steps.map(s => s.action),
+          int:       steps.map(s => Math.round(s.interference*1000)/1000),
+          buf:       steps.map(s => s.users.map(u => u.buffer)),
+          wait:      steps.map(s => s.users.map(u => Math.round(u.waiting_time_norm*1000)/1000)),
+          rb:        steps.map(s => s.users.map(u => u.allocated_rbs)),
+          user_types: steps[0].users.map(u => u.traffic_type),
+        };
+      }
+      EMBEDDED_DATA = {
+        normal:   compact(raw.scenarios.normal.steps),
+        fallback: compact(raw.scenarios.fallback.steps),
+        shield:   compact(raw.scenarios.shield.steps),
+        baseline: compact(raw.scenarios.baseline.steps),
+        meta:     raw.meta
+      };
+      document.getElementById('loading-overlay').style.display = 'none';
+      boot();
+    })
+    .catch(err => {
+      document.getElementById('loading-overlay').innerHTML =
+        `<div style="text-align:center;color:#f87171;padding:2rem">
+          <div style="font-size:18px;font-weight:600;margin-bottom:8px">⚠ Could not load demo_data.json</div>
+          <div style="font-size:13px;color:#9399b2">${err.message}</div>
+          <div style="font-size:12px;color:#4a5070;margin-top:8px">Place demo_data.json in the same folder as index.html</div>
+        </div>`;
+    });
+});
+
+function boot() {
+  D = EMBEDDED_DATA;  // use loaded data
+  buildSCList();
+  wireNav();
+  wireControls();
+  initCharts();
+  selectSC('normal');
+  renderComparison();
+  setTimeout(renderNetinfoCanvas, 200);
+  document.getElementById('log-filter').addEventListener('change', renderLog);
+}
+
+function buildSCList() {
+  const el = document.getElementById('sc-list'); el.innerHTML = '';
+  Object.entries(SC_META).forEach(([k,v]) => {
+    const sc = D[k]; if (!sc) return;
+    const fb = sc.path.filter(p => p.includes('FALLBACK')).length;
+    const sh = sc.path.filter(p => p.includes('SHIELDED')).length;
+    const ev = fb + sh;
+    const div = document.createElement('div');
+    div.className = 'sc-item' + (k === SC ? ' active' : '');
+    div.dataset.sc = k;
+    const evCol = k==='shield'?'var(--red)':k==='fallback'?'var(--amber)':'var(--text3)'; div.innerHTML = `<span class="sc-dot" style="background:${v.dot}"></span>${v.label}${ev>0?`<span class="sc-ev" style="color:${evCol}">${ev}</span>`:''}`;
+    div.addEventListener('click', () => selectSC(k));
+    el.appendChild(div);
+  });
+}
+
+function selectSC(key) {
+  SC = key; STEP = 0;
+  document.querySelectorAll('.sc-item').forEach(el => el.classList.toggle('active', el.dataset.sc === key));
+  const max = D[key].unc.length - 1;
+  ['net','comm','flow','fsm','rwd','step'].forEach(p => {
+    const sl = document.getElementById(p+'-sl'); if (!sl) return;
+    sl.max = max; sl.value = 0;
+    const sn = document.getElementById(p+'-sn'); if (sn) sn.textContent = '0';
+  });
+  stopAll();
+  renderAll();
+  renderTimelines();
+  updateEpisodeCharts();
+  // Reset filter to 'all' when scenario changes
+  const lf = document.getElementById('log-filter');
+  if (lf) lf.value = 'all';
+  renderLog();
+  renderNetMetrics();
+}
+
+// ── NAV ──
+function wireNav() {
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById('panel-'+b.dataset.p).classList.add('active');
+      setTimeout(() => { renderAll(); renderTimelines(); if(b.dataset.p==='netinfo') renderNetinfoCanvas(); if(b.dataset.p==='comm') renderCommCanvas(); if(b.dataset.p==='log') renderLog(); }, 100);
+    });
+  });
+}
+
+// ── CONTROLS ──
+function wireControls() {
+  ['net','comm','flow','fsm','rwd','step'].forEach(p => {
+    const sl = document.getElementById(p+'-sl'); if (!sl) return;
+    sl.addEventListener('input', e => {
+      STEP = parseInt(e.target.value);
+      syncSliders(); renderAll(); updateCursors();
+    });
+    document.getElementById(p+'-play').addEventListener('click', () => togglePlay(p));
+    document.getElementById(p+'-next')?.addEventListener('click', () => jumpEvent(1));
+    document.getElementById(p+'-prev')?.addEventListener('click', () => jumpEvent(-1));
+  });
+}
+
+function syncSliders() {
+  ['net','comm','flow','fsm','rwd','step'].forEach(p => {
+    const sl = document.getElementById(p+'-sl'); if (!sl) return;
+    sl.value = STEP;
+    const sn = document.getElementById(p+'-sn'); if (sn) sn.textContent = STEP;
+  });
+}
+
+function stopAll() {
+  Object.keys(timers).forEach(k => clearInterval(timers[k]));
+  Object.keys(playing).forEach(k => playing[k] = false);
+  document.querySelectorAll('[id$="-play"]').forEach(b => b.textContent = '▶ Play');
+  document.querySelectorAll('[id$="-play"]').forEach(b => b.classList.remove('on'));
+}
+
+function togglePlay(prefix) {
+  const was = playing[prefix];
+  stopAll();
+  if (!was) {
+    playing[prefix] = true;
+    const btn = document.getElementById(prefix+'-play');
+    btn.textContent = '⏸ Pause'; btn.classList.add('on');
+    const max = D[SC].unc.length - 1;
+    timers[prefix] = setInterval(() => {
+      STEP = (STEP + 1) % (max + 1);
+      syncSliders(); renderAll(); updateCursors();
+      if (STEP === max) { stopAll(); }
+    }, 80);
+  }
+}
+
+function jumpEvent(dir) {
+  const paths = D[SC].path;
+  if (dir === 1) {
+    for (let i = STEP+1; i < paths.length; i++) { if (paths[i] !== 'ENSEMBLE') { STEP = i; break; } }
+  } else {
+    for (let i = STEP-1; i >= 0; i--) { if (paths[i] !== 'ENSEMBLE') { STEP = i; break; } }
+  }
+  syncSliders(); renderAll(); updateCursors();
+}
+
+// ── RENDER ALL ──
+function renderAll() {
+  renderNetCanvas();
+  renderCommCanvas();
+  renderFlowCanvas();
+  renderFSMCanvas();
+  renderRewardStep();
+  renderStepPanel();
+  renderNetMetrics();
+}
+
+// ── NETWORK ENVIRONMENT CANVAS ──
+function renderNetCanvas() {
+  const canvas = document.getElementById('net-canvas'); if (!canvas) return;
+  const W = canvas.offsetWidth || 700;
+  canvas.width = W; canvas.height = 360;
+  const ctx = canvas.getContext('2d');
+  const sc = D[SC];
+  const path = sc.path[STEP];
+  const action = sc.act[STEP];
+  const bufs = sc.buf[STEP];
+  const waits = sc.wait[STEP];
+  const rbs = sc.rb[STEP];
+  const userTypes = sc.user_types;
+  const interf = sc.int[STEP];
+
+  ctx.fillStyle = '#0b0d14'; ctx.fillRect(0,0,W,360);
+
+  // interference background glow
+  const intAlpha = interf / 0.5 * 0.15;
+  const grad = ctx.createRadialGradient(W/2, 180, 0, W/2, 180, W*0.6);
+  grad.addColorStop(0, `rgba(248,113,113,${intAlpha})`);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,360);
+
+  // Base station — center
+  const cx = W/2, cy = 185;
+  // RIC label above
+  ctx.fillStyle = '#4f9cf9'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Near-RT RIC', cx, cy - 58);
+  ctx.fillStyle = '#13161f'; ctx.strokeStyle = '#4f9cf9'; ctx.lineWidth = 2;
+  // BS tower
+  ctx.beginPath(); ctx.moveTo(cx, cy-50); ctx.lineTo(cx-18,cy-30); ctx.lineTo(cx+18,cy-30); ctx.closePath();
+  ctx.fillStyle = '#1c2030'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#4f9cf9';
+  ctx.beginPath(); ctx.arc(cx, cy-52, 6, 0, Math.PI*2); ctx.fill();
+  // BS signal rings
+  [20,35,50].forEach((r,i) => {
+    ctx.beginPath(); ctx.arc(cx, cy-50, r, Math.PI*1.1, Math.PI*1.9);
+    ctx.strokeStyle = `rgba(79,156,249,${0.4-i*0.1})`; ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  const N = 10;
+  const R = Math.min(W*0.38, 150);
+  const positions = [];
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    positions.push({ x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) });
+  }
+
+  // Draw connections — ALL users with RB-proportional thickness
+  positions.forEach((pos, i) => {
+    const tt = userTypes[i];
+    const col = TT_COL[tt] || '#888';
+    const isSelected = (i === action);
+    const rb = rbs ? rbs[i] || 0 : 0;
+    const selCol = path === 'FALLBACK_CRITICAL_URLLC' ? '#f87171' :
+                   path === 'ENSEMBLE_SHIELDED' ? '#f59e0b' : '#4f9cf9';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy-30);
+    ctx.lineTo(pos.x, pos.y);
+    if (isSelected) {
+      ctx.strokeStyle = selCol;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+    } else if (rb > 0) {
+      // Non-selected users receiving RBs: show proportional line
+      ctx.strokeStyle = col + 'aa';
+      ctx.lineWidth = Math.max(0.8, rb * 0.5);
+      ctx.setLineDash([]);
+    } else {
+      // No RBs allocated: faint dashed
+      ctx.strokeStyle = col + '22';
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([3,5]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // RB label on line if receiving RBs and not selected
+    if (rb > 0 && !isSelected) {
+      const mx = cx + (pos.x-cx)*0.5, my = (cy-30) + (pos.y-(cy-30))*0.5;
+      ctx.fillStyle = col + 'cc';
+      ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(rb+'RB', mx, my-4);
+    }
+  });
+
+  // Animated packet on selected connection
+  if (STEP % 2 === 0) {
+    const pos = positions[action];
+    const t = (Date.now() % 800) / 800;
+    const px = cx + (pos.x - cx) * t;
+    const py = (cy-30) + (pos.y - (cy-30)) * t;
+    const selCol = path === 'FALLBACK_CRITICAL_URLLC' ? '#f87171' :
+                   path === 'ENSEMBLE_SHIELDED' ? '#f59e0b' : '#4f9cf9';
+    ctx.fillStyle = selCol;
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Draw users
+  positions.forEach((pos, i) => {
+    const tt = userTypes[i];
+    const col = TT_COL[tt] || '#888';
+    const isSelected = (i === action);
+    const buf = bufs[i] || 0;
+    const w = Math.min(waits[i] || 0, 1);
+    const rb = rbs ? rbs[i] || 0 : 0;
+
+    // Buffer ring (outer)
+    const outerR = 14 + buf * 0.8;
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, outerR, 0, Math.PI*2);
+    ctx.strokeStyle = col + '33'; ctx.lineWidth = 4; ctx.stroke();
+
+    // Waiting time arc
+    if (w > 0.01) {
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, outerR, -Math.PI/2, -Math.PI/2 + w * Math.PI * 2);
+      ctx.strokeStyle = w >= 0.7 ? '#f87171' : w >= 0.5 ? '#f59e0b' : col;
+      ctx.lineWidth = 4; ctx.stroke();
+    }
+
+    // User circle
+    const selCol = path === 'FALLBACK_CRITICAL_URLLC' ? '#f87171' :
+                   path === 'ENSEMBLE_SHIELDED' ? '#f59e0b' : '#4f9cf9';
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, 11, 0, Math.PI*2);
+    ctx.fillStyle = isSelected ? selCol + '44' : col + '22';
+    ctx.fill();
+    ctx.strokeStyle = isSelected ? selCol : col;
+    ctx.lineWidth = isSelected ? 2.5 : 1.5;
+    ctx.stroke();
+
+    // User label
+    ctx.fillStyle = isSelected ? selCol : col;
+    ctx.font = `bold 9px sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText('U'+i, pos.x, pos.y + 3);
+    ctx.font = '8px sans-serif'; ctx.fillStyle = '#4a5070';
+    ctx.fillText(TT_STR[tt], pos.x, pos.y + 22);
+
+    // RB allocation indicator below user
+    if (rb > 0) {
+      const rbW = rb * 3;
+      ctx.fillStyle = col + '88';
+      ctx.fillRect(pos.x - rbW/2, pos.y + 26, rbW, 3);
+    }
+  });
+
+  // Stats overlay
+  ctx.fillStyle = '#4a5070'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(`Interference: ${interf.toFixed(3)}  |  Step: ${STEP}  |  Path: ${sc.path[STEP].replace('_CRITICAL_URLLC','').replace('ENSEMBLE_','')}`, 8, 15);
+  ctx.textAlign = 'right';
+  ctx.fillText(`Rel: ${(sc.rel[STEP]*100).toFixed(5)}%  |  Lat: ${sc.lat[STEP].toFixed(3)}ms`, W-8, 15);
+
+  // RB chart update
+  if (charts.netRb && rbs) {
+    charts.netRb.data.datasets[0].data = rbs;
+    charts.netRb.data.datasets[0].backgroundColor = userTypes.map((t,i) => i===action?'#f59e0b':(TT_COL[t]+'99'));
+    charts.netRb.update('none');
+  }
+}
+
+// ── AGENT-RIC COMM CANVAS ──
+function renderCommCanvas() {
+  const canvas = document.getElementById('comm-canvas'); if (!canvas) return;
+  const W = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 700;
+  canvas.width = W; canvas.height = 340;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0b0d14'; ctx.fillRect(0,0,W,340);
+
+  const sc = D[SC];
+  const path = sc.path[STEP];
+  const unc = sc.unc[STEP];
+  const trust = sc.trust[STEP];
+  const lat = sc.lat[STEP];
+  const action = sc.act[STEP];
+
+  // --- Block positions ---
+  const ENV_X = 30, ENV_W = 120, ENV_Y = 130, ENV_H = 80;
+  const RIC_X = W/2 - 80, RIC_W = 160, RIC_Y = 20, RIC_H = 80;
+  const ENS_X = W - 200, ENS_W = 160, ENS_Y = 50, ENS_H = 60;
+  const FB_X = W - 200, FB_W = 160, FB_Y = 140, FB_H = 50;
+  const SH_X = W - 200, SH_W = 160, SH_Y = 220, SH_H = 50;
+
+  const fbActive = path === 'FALLBACK_CRITICAL_URLLC';
+  const shActive = path === 'ENSEMBLE_SHIELDED';
+  const ensActive = !fbActive;
+
+  function block(x, y, w, h, col, label, sub, active) {
+    const alpha = active ? 0.15 : 0.06;
+    ctx.fillStyle = col + (active ? '28' : '10');
+    ctx.strokeStyle = active ? col : col + '44';
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = active ? col : '#4a5070';
+    ctx.font = `bold 12px sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText(label, x+w/2, y+h/2-(sub?5:0));
+    if (sub) { ctx.font = '9px sans-serif'; ctx.fillStyle = '#4a5070'; ctx.fillText(sub, x+w/2, y+h/2+10); }
+  }
+
+  function arrow(x1,y1,x2,y2,col,label,active) {
+    const dash = active ? [] : [5,4];
+    ctx.strokeStyle = active ? col : col+'55';
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (active && label) {
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      ctx.fillStyle = '#13161f';
+      ctx.fillRect(mx-30, my-9, 60, 16);
+      ctx.fillStyle = col; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(label, mx, my+3);
+    }
+    // arrowhead
+    const angle = Math.atan2(y2-y1, x2-x1);
+    ctx.fillStyle = active ? col : col+'55';
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 9*Math.cos(angle-0.4), y2 - 9*Math.sin(angle-0.4));
+    ctx.lineTo(x2 - 9*Math.cos(angle+0.4), y2 - 9*Math.sin(angle+0.4));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Draw blocks
+  block(ENV_X, ENV_Y, ENV_W, ENV_H, '#2dd4bf', '6G Environment', '10 users · 20 RBs', true);
+  block(RIC_X, RIC_Y, RIC_W, RIC_H, '#e8eaf0', 'Near-RT RIC', 'Trustworthy RL', true);
+  // Baseline scenario: single agent, no safety layers
+  if (SC === 'baseline') {
+    // Baseline: single DQN, no safety layers
+    block(ENS_X, ENS_Y, ENS_W, ENS_H, '#4ade80', 'Single DQN', 'B1 Vanilla', true);
+    ctx.fillStyle = '#4a5070'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No trustworthy features', ENS_X+ENS_W/2, FB_Y+FB_H/2);
+    ctx.fillText('(no ensemble, no shield, no fallback, no RM)', ENS_X+ENS_W/2, SH_Y+SH_H/2);
+    // RIC → Single DQN (white input)
+    arrow(RIC_X+RIC_W, RIC_Y+RIC_H/2, ENS_X, ENS_Y+ENS_H/2, '#e8eaf0', 'state s(t)', true);
+    // Single DQN → 6G Env (green output)
+    arrow(ENS_X+ENS_W/2, ENS_Y+ENS_H, ENV_X+ENV_W/2, ENV_Y+ENV_H, '#4ade80', `a=U${action}`, true);
+  } else if (SC === 'normal') {
+    // Normal: blue ensemble — all decisions by ensemble, no safety layer activation
+    block(ENS_X, ENS_Y, ENS_W, ENS_H, '#4f9cf9', 'Ensemble', 'confident — no safety needed', true);
+    ctx.fillStyle = '#4a507066'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('(not activated)', ENS_X+ENS_W/2, FB_Y+FB_H/2);
+    ctx.fillText('(not activated)', ENS_X+ENS_W/2, SH_Y+SH_H/2);
+    // RIC → Ensemble (white input: state + uncertainty)
+    arrow(RIC_X+RIC_W, RIC_Y+RIC_H/2, ENS_X, ENS_Y+ENS_H/2, '#e8eaf0', `σ=${unc.toFixed(2)}`, true);
+    // Ensemble → 6G Env (blue output: action)
+    arrow(ENS_X+ENS_W/2, ENS_Y+ENS_H, ENV_X+ENV_W/2, ENV_Y, '#4f9cf9', `a=U${action}`, true);
+  } else if (SC === 'fallback') {
+    // Ensemble + Fallback: blue ensemble + yellow fallback, no shield
+    block(ENS_X, ENS_Y, ENS_W, ENS_H, '#4f9cf9', 'Ensemble', '3 DQN agents', ensActive);
+    block(FB_X, FB_Y, FB_W, FB_H, '#f59e0b', 'Fallback Policy', 'lookup table', fbActive);
+    // RIC → Ensemble
+    arrow(RIC_X+RIC_W, RIC_Y+RIC_H/2, ENS_X, ENS_Y+ENS_H/2, '#e8eaf0', `σ=${unc.toFixed(2)}`, true);
+    // Ensemble → Fallback (yellow, active when fallback fires)
+    arrow(ENS_X+ENS_W/2, ENS_Y+ENS_H, FB_X+FB_W/2, FB_Y, '#f59e0b', 'σ>7.0', fbActive);
+    // Fallback → 6G Env
+    arrow(FB_X+FB_W/2, FB_Y+FB_H, ENV_X+ENV_W/2, ENV_Y+ENV_H, '#f59e0b', `a=U${action}`, fbActive);
+    // Ensemble → 6G Env directly (when ensemble decides, no fallback)
+    arrow(ENS_X+ENS_W/2, ENS_Y+ENS_H, ENV_X+ENV_W/2, ENV_Y, '#4f9cf9', `a=U${action}`, !fbActive);
+    ctx.fillStyle = '#4a507066'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('(not activated)', ENS_X+ENS_W/2, SH_Y+SH_H/2);
+  } else {
+    // Full framework (shield scenario): all three blocks + connections
+    block(ENS_X, ENS_Y, ENS_W, ENS_H, '#4f9cf9', 'Ensemble', '3 DQN agents', ensActive);
+    block(FB_X, FB_Y, FB_W, FB_H, '#f59e0b', 'Fallback Policy', 'lookup table', fbActive);
+    block(SH_X, SH_Y, SH_W, SH_H, '#f87171', 'Safety Shield', 'rule-based', shActive);
+    // RIC → Ensemble
+    arrow(RIC_X+RIC_W, RIC_Y+RIC_H/2, ENS_X, ENS_Y+ENS_H/2, '#e8eaf0', `σ=${unc.toFixed(2)}`, true);
+    // Ensemble → Fallback (yellow)
+    arrow(ENS_X+ENS_W/2, ENS_Y+ENS_H, FB_X+FB_W/2, FB_Y, '#f59e0b', 'σ>7.0', fbActive);
+    // Fallback → Shield (red, when fallback fires)
+    arrow(FB_X+FB_W/2, FB_Y+FB_H, SH_X+SH_W/2, SH_Y, '#f87171', '', fbActive);
+    // Ensemble → Shield directly (offset, when no fallback)
+    arrow(ENS_X+ENS_W/2+18, ENS_Y+ENS_H, SH_X+SH_W/2+18, SH_Y, '#f87171', '', !fbActive);
+    // Shield → 6G Env (red)
+    arrow(SH_X, SH_Y+SH_H/2, ENV_X+ENV_W/2, ENV_Y+ENV_H, '#f87171', `a=U${action}`, true);
+  }
+  // Reward: env → RIC
+  arrow(ENV_X+ENV_W/2, ENV_Y, RIC_X+RIC_W/2, RIC_Y+RIC_H, '#a78bfa', `r=${sc.tot[STEP]?.toFixed(2)||''}`, true);
+
+  // Latency label
+  ctx.fillStyle = lat > 1 ? '#f87171' : '#2dd4bf';
+  ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`Decision latency: ${lat.toFixed(3)}ms ${lat>1?'⚠ >1ms budget':'✓ <1ms'}`, W/2, 310);
+
+  // Trust score
+  ctx.fillStyle = trust >= 0.8 ? '#2dd4bf' : '#f59e0b';
+  ctx.fillText(`Trust score: ${trust.toFixed(3)} ${trust>=0.8?'(high trust)':'(medium trust)'}`, W/2, 328);
+
+  // Update info
+  const pathLabel = path === 'ENSEMBLE' ? 'Ensemble decision' :
+    path === 'FALLBACK_CRITICAL_URLLC' ? 'Fallback policy (layer 2 activated)' : 'Safety shield override (layer 3)';
+  const bc = path === 'ENSEMBLE' ? 'ens' : path.includes('FALLBACK') ? 'fb' : 'sh';
+  document.getElementById('comm-info').innerHTML = `
+    <span class="badge ${bc}">${pathLabel}</span>
+    <span class="kv"><strong>σ</strong> ${unc.toFixed(3)}</span>
+    <span class="kv"><strong>Trust</strong> ${trust.toFixed(3)}</span>
+    <span class="kv"><strong>Latency</strong> ${lat.toFixed(3)}ms</span>
+    <span class="kv"><strong>Action</strong> User ${action} (${TT_STR[sc.user_types[action]]})</span>
+    <span class="kv"><strong>Reliability so far</strong> ${(sc.rel[STEP]*100).toFixed(5)}%</span>
+  `;
+}
+
+// ── DECISION FLOW CANVAS ──
+function renderFlowCanvas() {
+  const canvas = document.getElementById('flow-canvas'); if (!canvas) return;
+  const W = canvas.offsetWidth || 700;
+  canvas.width = W; canvas.height = 480;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#13161f'; ctx.fillRect(0,0,W,480);
+
+  const sc = D[SC];
+  const path = sc.path[STEP];
+  const unc = sc.unc[STEP];
+  const trust = sc.trust[STEP];
+  const lat = sc.lat[STEP];
+  const action = sc.act[STEP];
+  const rm = sc.rm[STEP];
+
+  const fbA = path === 'FALLBACK_CRITICAL_URLLC';
+  const shA = path === 'ENSEMBLE_SHIELDED';
+  const ensA = path === 'ENSEMBLE';
+
+  // Layout constants
+  const midX = W/2;
+
+  function roundRect(x,y,w,h,r,fillC,strokeC,active,glow) {
+    if (glow && active) {
+      ctx.shadowColor = strokeC; ctx.shadowBlur = 18;
+    }
+    ctx.fillStyle = fillC;
+    ctx.strokeStyle = strokeC;
+    ctx.lineWidth = active ? 2.5 : 1;
+    ctx.beginPath(); ctx.roundRect(x,y,w,h,r); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  function label(text, x, y, col, size, bold) {
+    ctx.fillStyle = col; ctx.font = `${bold?'bold ':''} ${size}px sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText(text, x, y);
+  }
+
+  function arrow(x1,y1,x2,y2,col,active,dash) {
+    ctx.strokeStyle = active ? col : col+'44';
+    ctx.lineWidth = active ? 2.5 : 1;
+    ctx.setLineDash(dash||[]);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+    const a = Math.atan2(y2-y1,x2-x1);
+    ctx.fillStyle = active ? col : col+'44';
+    ctx.beginPath();
+    ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-10*Math.cos(a-0.35),y2-10*Math.sin(a-0.35));
+    ctx.lineTo(x2-10*Math.cos(a+0.35),y2-10*Math.sin(a+0.35));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // ── INPUT ──
+  const INP = {x:20,y:200,w:100,h:60};
+  roundRect(INP.x,INP.y,INP.w,INP.h,8,'#1c2030','#2dd4bf33',false,false);
+  label('State s(t)',INP.x+INP.w/2,INP.y+22,'#2dd4bf',11,true);
+  label('53 features',INP.x+INP.w/2,INP.y+38,'#4a5070',9,false);
+
+  arrow(INP.x+INP.w, INP.y+30, 160, INP.y+30, '#2dd4bf', true);
+
+  // ── ENSEMBLE ──
+  const ENS = {x:160,y:160,w:150,h:100};
+  roundRect(ENS.x,ENS.y,ENS.w,ENS.h,10,'#0f1a2e',ensA||shA?'#4f9cf9':'#1c2030',ensA||shA,true);
+  label('Ensemble',ENS.x+ENS.w/2,ENS.y+28,ensA||shA?'#4f9cf9':'#8890b0',13,true);
+  label('3 DQN agents',ENS.x+ENS.w/2,ENS.y+44,'#4a5070',10,false);
+  label(`σ = ${unc.toFixed(2)} ${unc>7?'⚠':'✓'}`,ENS.x+ENS.w/2,ENS.y+62,unc>7?'#f59e0b':'#2dd4bf',10,true);
+  label(`argmax Q̄ → U${action}`,ENS.x+ENS.w/2,ENS.y+80,'#4a5070',9,false);
+
+  // Layer 1 label
+  ctx.fillStyle='#4f9cf944'; ctx.strokeStyle='#4f9cf933'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(ENS.x-5,ENS.y-24,ENS.w+10,ENS.h+30,6); ctx.stroke();
+  label('Layer 1 — Ensemble',ENS.x+ENS.w/2,ENS.y-10,'#4f9cf9',9,true);
+
+  // ── DECISION DIAMOND ──
+  const DX = ENS.x+ENS.w+60, DY = ENS.y+50;
+  const DS = 38;
+  ctx.beginPath();
+  ctx.moveTo(DX,DY-DS); ctx.lineTo(DX+DS,DY); ctx.lineTo(DX,DY+DS); ctx.lineTo(DX-DS,DY);
+  ctx.closePath();
+  ctx.fillStyle = fbA ? '#f59e0b22' : '#1c2030';
+  ctx.strokeStyle = fbA ? '#f59e0b' : '#2a3050';
+  ctx.lineWidth = fbA ? 2 : 1;
+  ctx.fill(); ctx.stroke();
+  label('σ > 7?',DX,DY-6,'#dde1f0',9,true);
+  label('+ critical',DX,DY+8,'#4a5070',8,false);
+
+  arrow(ENS.x+ENS.w, ENS.y+50, DX-DS, DY, '#4f9cf9', true);
+
+  // YES → Fallback
+  const FB = {x:DX+80,y:120,w:140,h:70};
+  arrow(DX, DY-DS, DX, FB.y+FB.h/2, '#f59e0b', fbA, fbA?[]:[4,4]);
+  arrow(DX, FB.y+FB.h/2, FB.x, FB.y+FB.h/2, '#f59e0b', fbA, fbA?[]:[4,4]);
+  label('Yes (σ>7 + critical)',DX+20,DY-DS-8,fbA?'#f59e0b':'#4a5070',8,false);
+  roundRect(FB.x,FB.y,FB.w,FB.h,10,'#0e1600',fbA?'#f59e0b':'#1c2030',fbA,true);
+  label('Fallback Policy',FB.x+FB.w/2,FB.y+22,fbA?'#f59e0b':'#4a5070',12,true);
+  label('lookup table',FB.x+FB.w/2,FB.y+38,'#4a5070',9,false);
+  label('→ longest waiting URLLC',FB.x+FB.w/2,FB.y+54,'#4a5070',9,false);
+  // Layer 2 label
+  ctx.strokeStyle='#f59e0b33'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(FB.x-5,FB.y-24,FB.w+10,FB.h+30,6); ctx.stroke();
+  label('Layer 2 — Fallback',FB.x+FB.w/2,FB.y-10,fbA?'#f59e0b':'#4a507088',9,true);
+
+  // NO → ensemble action continues
+  label('No',DX+DS+8,DY+6,'#4a5070',9,false);
+
+  // ── SHIELD ──
+  const SH = {x:DX+80,y:260,w:140,h:80};
+  // From ensemble (no path)
+  if (!fbA) arrow(DX+DS,DY,SH.x,SH.y+40,'#4f9cf9',!fbA&&!shA);
+  // From fallback
+  if (fbA) arrow(FB.x+FB.w/2,FB.y+FB.h,SH.x+SH.w/2,SH.y,'#f59e0b',fbA);
+  roundRect(SH.x,SH.y,SH.w,SH.h,10,'#1a0a0a',shA?'#f87171':'#1c2030',shA,true);
+  label('Safety Shield',SH.x+SH.w/2,SH.y+24,shA?'#f87171':'#4a5070',12,true);
+  label('rule-based verification',SH.x+SH.w/2,SH.y+40,'#4a5070',9,false);
+  label(shA?'⚡ Override! → safe action':'✓ Action passes through',SH.x+SH.w/2,SH.y+58,shA?'#f59e0b':'#f59e0b44',9,false);
+  // Layer 3 label
+  ctx.strokeStyle='#f59e0b33'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(SH.x-5,SH.y-24,SH.w+10,SH.h+30,6); ctx.stroke();
+  label('Layer 3 — Shield',SH.x+SH.w/2,SH.y-10,shA?'#f59e0b':'#4a507088',9,true);
+
+  // ── ACTION OUTPUT ──
+  const ACT = {x:SH.x,y:390,w:140,h:50};
+  const actCol = fbA?'#f59e0b':shA?'#f87171':'#4f9cf9';
+  arrow(SH.x+SH.w/2,SH.y+SH.h,ACT.x+ACT.w/2,ACT.y,actCol,true);
+  roundRect(ACT.x,ACT.y,ACT.w,ACT.h,10,'#0a0b14',actCol,true,true);
+  label(`Action → User ${action}`,ACT.x+ACT.w/2,ACT.y+20,actCol,12,true);
+  label(`(${TT_STR[sc.user_types[action]]})  ${lat.toFixed(3)}ms`,ACT.x+ACT.w/2,ACT.y+36,'#dde1f0',10,false);
+
+  // ── RM + TRUST (bottom left) ──
+  const RM_BOX = {x:20,y:360,w:110,h:40};
+  roundRect(RM_BOX.x,RM_BOX.y,RM_BOX.w,RM_BOX.h,8,'#1c2030','#4a5070',false,false);
+  label('RM: '+(rm||'N/A'),RM_BOX.x+RM_BOX.w/2,RM_BOX.y+15,RM_COL[rm]||'#4a5070',10,true);
+  label(`mod × ${RM_MOD[rm]||1.0}`,RM_BOX.x+RM_BOX.w/2,RM_BOX.y+30,'#4a5070',9,false);
+
+  const TR_BOX = {x:20,y:310,w:110,h:40};
+  roundRect(TR_BOX.x,TR_BOX.y,TR_BOX.w,TR_BOX.h,8,'#1c2030',trust>=0.8?'#2dd4bf':'#f59e0b',false,false);
+  label('Trust score',TR_BOX.x+TR_BOX.w/2,TR_BOX.y+15,trust>=0.8?'#2dd4bf':'#f59e0b',10,true);
+  label(trust.toFixed(3),TR_BOX.x+TR_BOX.w/2,TR_BOX.y+30,trust>=0.8?'#2dd4bf':'#f59e0b',13,true);
+
+  // Step info
+  const pathLabel = path==='ENSEMBLE'?'Ensemble decision (layer 1)':path.includes('FALLBACK')?'Fallback policy triggered (layer 2)':'Safety shield override (layer 3)';
+  const bc = path==='ENSEMBLE'?'ens':path.includes('FALLBACK')?'fb':'sh';
+  document.getElementById('flow-info').innerHTML = `
+    <span class="badge ${bc}">${pathLabel}</span>
+    <span class="rm rm-${(rm||'N/A').replace(' ','_')}">${rm||'N/A'}</span>
+    <span class="kv"><strong>σ</strong> ${unc.toFixed(3)}</span>
+    <span class="kv"><strong>Threshold</strong> 7.0</span>
+    <span class="kv"><strong>Trust</strong> ${trust.toFixed(3)}</span>
+    <span class="kv"><strong>Latency</strong> ${lat.toFixed(3)}ms</span>
+    <span class="kv"><strong>U${action}</strong> ${TT_STR[sc.user_types[action]]}</span>
+  `;
+}
+
+// ── FSM CANVAS ──
+function renderFSMCanvas() {
+  const canvas = document.getElementById('fsm-canvas'); if (!canvas) return;
+  const W = canvas.offsetWidth || 700;
+  canvas.width = W; canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#13161f'; ctx.fillRect(0,0,W,300);
+
+  const sc = D[SC];
+  const currentRM = sc.rm[STEP] || 'IDLE';
+
+  // State positions — arranged horizontally with VIOLATION at bottom
+  const states = {
+    IDLE:           {x: W*0.12, y: 140},
+    URLLC_ACTIVE:   {x: W*0.32, y: 140},
+    URLLC_WARNING:  {x: W*0.52, y: 80},
+    URLLC_CRITICAL: {x: W*0.72, y: 140},
+    VIOLATION:      {x: W*0.52, y: 220},
+  };
+  const R = 34;
+
+  // Transitions
+  const transitions = [
+    {from:'IDLE',to:'URLLC_ACTIVE',label:'urllc_present'},
+    {from:'URLLC_ACTIVE',to:'IDLE',label:'urllc_success'},
+    {from:'URLLC_ACTIVE',to:'URLLC_WARNING',label:'urllc_warning'},
+    {from:'URLLC_WARNING',to:'URLLC_CRITICAL',label:'urllc_stress'},
+    {from:'URLLC_WARNING',to:'URLLC_ACTIVE',label:'urllc_success'},
+    {from:'URLLC_CRITICAL',to:'VIOLATION',label:'qos_violation'},
+    {from:'URLLC_CRITICAL',to:'URLLC_ACTIVE',label:'urllc_success'},
+    {from:'VIOLATION',to:'URLLC_ACTIVE',label:'urllc_success'},
+  ];
+
+  // Self-loop IDLE
+  ctx.strokeStyle = '#4a507066'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  const id = states.IDLE;
+  ctx.beginPath(); ctx.arc(id.x-R-10, id.y-20, 14, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#4a5070'; ctx.font='8px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('¬urllc',id.x-R-10,id.y-24);
+
+  // Draw transitions
+  transitions.forEach(t => {
+    const f = states[t.from], to = states[t.to];
+    const fromActive = t.from===currentRM, toActive = t.to===currentRM;
+    const active = fromActive;
+    ctx.strokeStyle = active ? (RM_COL[t.from]) : '#2a3050';
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.setLineDash(active?[]:[4,3]);
+
+    // curved arrow
+    const dx = to.x-f.x, dy = to.y-f.y;
+    const len = Math.sqrt(dx*dx+dy*dy);
+    const nx = dx/len, ny = dy/len;
+    // offset for paired transitions
+    const off = (t.from==='URLLC_ACTIVE'&&t.to==='IDLE') ? 20 : 0;
+    const sx = f.x + nx*R + ny*off;
+    const sy = f.y + ny*R - nx*off;
+    const ex = to.x - nx*R + ny*off;
+    const ey = to.y - ny*R - nx*off;
+    const cpx = (sx+ex)/2 - ny*30;
+    const cpy = (sy+ey)/2 + nx*30;
+
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.quadraticCurveTo(cpx,cpy,ex,ey); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // arrowhead
+    const ang = Math.atan2(ey-cpy, ex-cpx);
+    ctx.fillStyle = active ? RM_COL[t.from] : '#2a3050';
+    ctx.beginPath();
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-9*Math.cos(ang-0.4),ey-9*Math.sin(ang-0.4));
+    ctx.lineTo(ex-9*Math.cos(ang+0.4),ey-9*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fill();
+
+    // label
+    // Place label at midpoint of the curve, with per-transition offset tweaks
+    let lx = (sx+cpx*2+ex)/3 - ny*12;
+    let ly = (sy+cpy*2+ey)/3 + nx*12;
+    // urllc_warning: nudge label onto the arc itself
+    if (t.label === 'urllc_warning') { lx = (sx+cpx+ex)/3; ly = (sy+cpy+ey)/3 - 10; }
+    const labelCol = t.label==='urllc_warning' ? '#f59e0b' :
+                     (active ? RM_COL[t.from]+'cc' : '#4a5070');
+    ctx.fillStyle = labelCol;
+    ctx.font=`${(active||t.label==='urllc_warning')?'bold ':''} 8px sans-serif`;
+    ctx.textAlign='center';
+    ctx.fillText(t.label,lx,ly);
+  });
+
+  // Draw state circles
+  Object.entries(states).forEach(([name, pos]) => {
+    const isCurrent = name === currentRM;
+    const col = RM_COL[name] || '#4a5070';
+    const mod = RM_MOD[name] || 1.0;
+
+    // Glow for current
+    if (isCurrent) { ctx.shadowColor = col; ctx.shadowBlur = 20; }
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,R,0,Math.PI*2);
+    ctx.fillStyle = isCurrent ? col+'33' : '#1c2030';
+    ctx.strokeStyle = isCurrent ? col : col+'55';
+    ctx.lineWidth = isCurrent ? 3 : 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = isCurrent ? col : col+'99';
+    ctx.font = `bold 10px sans-serif`; ctx.textAlign = 'center';
+    const lines = name.split('_');
+    const totalH = lines.length * 13;
+    lines.forEach((l,i) => ctx.fillText(l, pos.x, pos.y - totalH/2 + i*13 + 7));
+
+    ctx.fillStyle = isCurrent ? '#dde1f0' : '#4a5070';
+    ctx.font = '9px sans-serif';
+    ctx.fillText(`×${mod}`, pos.x, pos.y + R - 6);
+  });
+
+  // Current RM step info
+  const mod = RM_MOD[currentRM] || 1.0;
+  document.getElementById('fsm-step-info').innerHTML = `
+    <span class="rm rm-${(currentRM).replace(' ','_')}">${currentRM}</span>
+    <span class="kv"><strong>Modifier</strong> ×${mod}</span>
+    <span class="kv"><strong>Effect</strong> reward × ${mod} stored in replay buffer</span>
+    <span class="kv"><strong>Step</strong> ${STEP}</span>
+  `;
+}
+
+// ── REWARD STEP ──
+function renderRewardStep() {
+  const sc = D[SC];
+  if (!charts.rwdBar) return;
+  const i = STEP;
+  charts.rwdBar.data.datasets[0].data = [sc.tp[i], sc.ub[i], sc.qp[i], sc.fa[i]];
+  charts.rwdBar.update('none');
+}
+
+// ── STEP PANEL ──
+function renderStepPanel() {
+  const sc = D[SC];
+  const i = STEP;
+  const path = sc.path[i];
+  const action = sc.act[i];
+  const bufs = sc.buf[i] || [];
+  const waits = sc.wait[i] || [];
+  const rbs = sc.rb[i] || [];
+  const userTypes = sc.user_types;
+
+  const bc = path==='ENSEMBLE'?'ens':path.includes('FALLBACK')?'fb':'sh';
+  const shortP = path.replace('_CRITICAL_URLLC','').replace('ENSEMBLE_','');
+  const rm = sc.rm[i] || 'N/A';
+
+  document.getElementById('step-info').innerHTML = `
+    <span class="badge ${bc}">${shortP}</span>
+    <span class="rm rm-${rm.replace(' ','_')}">${rm}</span>
+    <span class="kv"><strong>σ</strong> ${sc.unc[i].toFixed(3)}</span>
+    <span class="kv"><strong>Trust</strong> ${sc.trust[i].toFixed(3)}</span>
+    <span class="kv"><strong>Latency</strong> ${sc.lat[i].toFixed(3)}ms</span>
+    <span class="kv"><strong>URLLC bonus</strong> ${sc.ub[i].toFixed(0)}</span>
+    <span class="kv"><strong>QoS penalty</strong> <span style="color:${sc.qp[i]<0?'var(--red)':'inherit'}">${sc.qp[i].toFixed(0)}</span></span>
+  `;
+
+  const el = document.getElementById('step-users'); if (!el) return;
+  el.innerHTML = '';
+  for (let u = 0; u < 10; u++) {
+    const tt = userTypes[u];
+    const w = Math.min(waits[u]||0, 1);
+    const fc = w>=0.7?'r':w>=0.5?'w':'';
+    const isSelected = u === action;
+    const selCls = isSelected ? (path.includes('FALLBACK')?' sel fb':path.includes('SHIELDED')?' sel sh':' sel') : '';
+    const ttC = tt===1?'tt-u':tt===0?'tt-e':'tt-m';
+    // SVG icon by service type
+    const iconColor = tt===1?'#4f9cf9':tt===0?'#2dd4bf':'#a78bfa';
+    const selColor = path.includes('FALLBACK')?'#f59e0b':path.includes('SHIELDED')?'#f87171':'#4f9cf9';
+    // URLLC: smartphone, eMBB: laptop, mMTC: sensor/chip
+    const icon = tt===1
+      ? `<svg class="uc-icon" viewBox="0 0 24 24" fill="none" stroke="${isSelected?selColor:iconColor}" stroke-width="1.5"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="${isSelected?selColor:iconColor}"/><line x1="9" y1="5" x2="15" y2="5"/></svg>`
+      : tt===0
+      ? `<svg class="uc-icon" viewBox="0 0 24 24" fill="none" stroke="${isSelected?selColor:iconColor}" stroke-width="1.5"><rect x="3" y="5" width="18" height="12" rx="1"/><path d="M1 19h22"/></svg>`
+      : `<svg class="uc-icon" viewBox="0 0 24 24" fill="none" stroke="${isSelected?selColor:iconColor}" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5" fill="${isSelected?selColor:iconColor}"/><circle cx="15" cy="9" r="1.5" fill="${isSelected?selColor:iconColor}"/><circle cx="9" cy="15" r="1.5" fill="${isSelected?selColor:iconColor}"/><circle cx="15" cy="15" r="1.5" fill="${isSelected?selColor:iconColor}"/></svg>`;
+    el.innerHTML += `<div class="uc${selCls}">
+      ${icon}
+      <div class="uid">U${u}</div>
+      <span class="tt ${ttC}">${TT_STR[tt]}</span>
+      <div class="wb"><div class="wf ${fc}" style="width:${(w*100).toFixed(0)}%"></div></div>
+      <div class="sr"><span>W:${(w*100).toFixed(0)}%</span><span>B:${bufs[u]||0}</span><span>${rbs[u]||0}RB</span></div>
+    </div>`;
+  }
+  if (charts.stepRc) {
+    charts.stepRc.data.datasets[0].data = [sc.tp[i],sc.ub[i],sc.qp[i],sc.fa[i]];
+    charts.stepRc.update('none');
+  }
+}
+
+// ── NET METRICS ──
+function renderNetMetrics() {
+  // Use paper results for the active scenario
+  const isV1 = SC !== 'baseline';
+  const rel = isV1 ? PAPER.V1.rel : PAPER.B1.rel;
+  const p99 = isV1 ? PAPER.V1.p99 : PAPER.B1.p99;
+  const relOk = rel >= 99.99999, latOk = p99 < 1;
+  document.getElementById('net-metrics').innerHTML = `
+    <div class="metric"><div class="lbl">URLLC Reliability</div><div class="val ${relOk?'g':'r'}">${rel.toFixed(5)}%</div><div class="sub">paper result</div></div>
+    <div class="metric"><div class="lbl">P99 Latency</div><div class="val ${latOk?'g':'r'}">${p99.toFixed(3)} ms</div><div class="sub">paper result</div></div>
+    ${isV1?`<div class="metric"><div class="lbl">Trust score</div><div class="val b">${PAPER.V1.trust}</div><div class="sub">paper result</div></div>`:'<div class="metric"><div class="lbl">Safety layers</div><div class="val r">None</div><div class="sub">no shield/fallback</div></div>'}
+    <div class="metric"><div class="lbl">Avg reward</div><div class="val">${isV1?PAPER.V1.reward:'-'}</div><div class="sub">paper result</div></div>
+    ${isV1?`<div class="metric"><div class="lbl">Fallback usage</div><div class="val w">${PAPER.V1.fb}</div><div class="sub">of decisions</div></div>`:''}
+    ${isV1?`<div class="metric"><div class="lbl">Shield usage</div><div class="val w">${PAPER.V1.sh}</div><div class="sub">of decisions</div></div>`:''}
+  `;
+}
+
+// ── TIMELINES ──
+function renderTimelines() {
+  ['net-tl','comm-tl','flow-tl','step-tl','fsm-tl'].forEach(id => {
+    const wrap = document.getElementById(id); if (!wrap) return;
+    const c = wrap.querySelector('canvas');
+    const W = wrap.offsetWidth || 700, H = 26;
+    c.width = W; c.height = H;
+    const ctx2 = c.getContext('2d');
+    const paths = D[SC].path;
+    paths.forEach((p,i) => {
+      const x = (i/(paths.length-1))*W;
+      const col = PATH_COL[p]||'#888';
+      ctx2.fillStyle = col + (p==='ENSEMBLE'?'44':'cc');
+      ctx2.fillRect(x,0,Math.max(1,W/paths.length),H);
+    });
+    wrap.removeEventListener('click', wrap._tlClick);
+    wrap._tlClick = e => {
+      const rect = wrap.getBoundingClientRect();
+      STEP = Math.round(((e.clientX-rect.left)/rect.width)*(paths.length-1));
+      STEP = Math.max(0,Math.min(paths.length-1,STEP));
+      syncSliders(); renderAll(); updateCursors();
+    };
+    wrap.addEventListener('click', wrap._tlClick);
+    wrap.addEventListener('mousemove', e => { if(e.buttons===1) wrap._tlClick(e); });
+  });
+  updateCursors();
+}
+
+function updateCursors() {
+  if (!D) return;
+  const pct = STEP / (D[SC].path.length-1);
+  ['net-tl','comm-tl','flow-tl','step-tl','fsm-tl'].forEach(id => {
+    const wrap = document.getElementById(id); if (!wrap) return;
+    const cur = wrap.querySelector('.tl-cur');
+    if (cur) cur.style.left = (pct * wrap.offsetWidth)+'px';
+  });
+}
+
+// ── CHARTS ──
+function initCharts() {
+  const gc='#1c2030', tc='#4a5070';
+  const base = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:tc,font:{size:9}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:9}},grid:{color:gc}}}
+  };
+
+  // Network panel
+  charts.netRb = new Chart(document.getElementById('net-rb'),{type:'bar',
+    data:{labels:Array.from({length:10},(_,i)=>'U'+i),datasets:[{data:Array(10).fill(0),backgroundColor:Array(10).fill('#4f9cf999'),borderRadius:3}]},
+    options:{...base}});
+
+  charts.netInt = new Chart(document.getElementById('net-int'),{type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:'#f87171',backgroundColor:'rgba(248,113,113,0.08)',borderWidth:1.5,pointRadius:0,fill:true}]},
+    options:{...base,scales:{x:{...base.scales.x},y:{...base.scales.y,min:0,max:0.6}}}});
+
+  // Comm panel
+  charts.commLat = new Chart(document.getElementById('comm-lat'),{type:'line',
+    data:{labels:[],datasets:[
+      {data:[],borderColor:'#4f9cf9',backgroundColor:'rgba(79,156,249,0.08)',borderWidth:1.5,pointRadius:0,fill:true},
+      {data:[],borderColor:'#f87171',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false}
+    ]},options:{...base}});
+
+  charts.commUt = new Chart(document.getElementById('comm-ut'),{type:'line',
+    data:{labels:[],datasets:[
+      {data:[],borderColor:'#4f9cf9',borderWidth:1.5,pointRadius:0,fill:false},
+      {data:[],borderColor:'#2dd4bf',borderWidth:1.5,pointRadius:0,fill:false}
+    ]},options:{...base}});
+
+  // Reward decomp
+  charts.rwdArea = new Chart(document.getElementById('rwd-area'),{type:'line',
+    data:{labels:[],datasets:[
+      {label:'Throughput',data:[],borderColor:'#4f9cf9',backgroundColor:'rgba(79,156,249,0.15)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.2},
+      {label:'URLLC bonus',data:[],borderColor:'#2dd4bf',backgroundColor:'rgba(45,212,191,0.12)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.2},
+      {label:'QoS penalty',data:[],borderColor:'#f87171',backgroundColor:'rgba(248,113,113,0.1)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.2},
+      {label:'Fairness',data:[],borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.08)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.2},
+      {label:'Total',data:[],borderColor:'#ffffff',borderWidth:2,pointRadius:0,fill:false,tension:0.2,borderDash:[]}
+    ]},options:{...base,plugins:{legend:{display:false}}}});
+
+  charts.rwdBar = new Chart(document.getElementById('rwd-bar'),{type:'bar',
+    data:{labels:['Throughput','URLLC bonus','QoS penalty','Fairness'],
+      datasets:[{data:[0,0,0,0],backgroundColor:['#4f9cf966','#2dd4bf66','#f8717166','#a78bfa66'],borderColor:['#4f9cf9','#2dd4bf','#f87171','#a78bfa'],borderWidth:1.5,borderRadius:3}]},
+    options:{...base,indexAxis:'y',scales:{x:base.scales.x,y:{ticks:{color:tc,font:{size:9}},grid:{display:false}}}}});
+
+  charts.rwdCum = new Chart(document.getElementById('rwd-cum'),{type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:'#4f9cf9',backgroundColor:'rgba(79,156,249,0.08)',borderWidth:1.5,pointRadius:0,fill:true}]},
+    options:{...base}});
+
+  charts.rwdRel = new Chart(document.getElementById('rwd-rel'),{type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:'#2dd4bf',backgroundColor:'rgba(45,212,191,0.08)',borderWidth:1.5,pointRadius:0,fill:true}]},
+    options:{...base,scales:{x:base.scales.x,y:{...base.scales.y,min:0.999,max:1.0001,ticks:{color:tc,font:{size:9},callback:v=>(v*100).toFixed(3)+'%'}}}}});
+
+  // FSM history
+  charts.fsmHist = new Chart(document.getElementById('fsm-hist'),{type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:'#4f9cf9',backgroundColor:'rgba(79,156,249,0.1)',borderWidth:1.5,pointRadius:0,fill:true,stepped:true}]},
+    options:{...base,scales:{x:base.scales.x,y:{...base.scales.y,min:0,max:1,ticks:{color:tc,font:{size:9},callback:v=>v===0?'IDLE':'URLLC_ACTIVE'}}}}});
+
+  // Step panel
+  charts.stepRc = new Chart(document.getElementById('step-rc'),{type:'bar',
+    data:{labels:['TP','UB','QP','FA'],datasets:[{data:[0,0,0,0],backgroundColor:['#4f9cf966','#2dd4bf66','#f8717166','#a78bfa66'],borderColor:['#4f9cf9','#2dd4bf','#f87171','#a78bfa'],borderWidth:1.5,borderRadius:3}]},
+    options:{...base,indexAxis:'y',scales:{x:base.scales.x,y:{ticks:{color:tc,font:{size:9}},grid:{display:false}}}}});
+
+  charts.stepLat = new Chart(document.getElementById('step-lat'),{type:'line',
+    data:{labels:[],datasets:[
+      {data:[],borderColor:'#4f9cf9',backgroundColor:'rgba(79,156,249,0.08)',borderWidth:1.5,pointRadius:0,fill:true},
+      {data:[],borderColor:'#f87171',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false}
+    ]},options:{...base}});
+
+  // Comparison charts
+  charts.cmpRel = new Chart(document.getElementById('cmp-rel'),{type:'bar',
+    data:{labels:['V1','B1','B2','B3'],datasets:[{data:[100.0,99.99958,99.99764,99.99959],backgroundColor:['#4f9cf9aa','#4ade80aa','#a78bfaaa','#f59e0baa'],borderRadius:4}]},
+    options:{...base,scales:{x:base.scales.x,y:{...base.scales.y,min:99.996,max:100.001,ticks:{color:tc,font:{size:9},callback:v=>v.toFixed(3)+'%'}}}}});
+
+  charts.cmpLat = new Chart(document.getElementById('cmp-lat'),{type:'bar',
+    data:{labels:['V1','B1','B2','B3'],datasets:[{data:[0.933,0.404,0.416,0.316],backgroundColor:['#4f9cf9aa','#4ade80aa','#a78bfaaa','#f59e0baa'],borderRadius:4}]},
+    options:{...base}});
+
+  charts.cmpRew = new Chart(document.getElementById('cmp-rew'),{type:'line',
+    data:{labels:[],datasets:[
+      {data:[],borderColor:'#4f9cf9',borderWidth:1.5,pointRadius:0,fill:false},
+      {data:[],borderColor:'#f87171',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[4,3]}
+    ]},options:{...base}});
+}
+
+function updateEpisodeCharts() {
+  if (!D) return;
+  const sc = D[SC];
+  const labels = sc.unc.map((_,i)=>i);
+
+  // net interference
+  if (charts.netInt) {
+    charts.netInt.data.labels = labels;
+    charts.netInt.data.datasets[0].data = sc.int;
+    charts.netInt.update('none');
+  }
+
+  // comm charts
+  if (charts.commLat) {
+    charts.commLat.data.labels = labels;
+    charts.commLat.data.datasets[0].data = sc.lat;
+    charts.commLat.data.datasets[1].data = labels.map(()=>1.0);
+    charts.commLat.update('none');
+  }
+  if (charts.commUt) {
+    charts.commUt.data.labels = labels;
+    charts.commUt.data.datasets[0].data = sc.unc;
+    charts.commUt.data.datasets[1].data = sc.trust.map(t=>t*10);
+    charts.commUt.update('none');
+  }
+
+  // reward charts
+  if (charts.rwdArea) {
+    charts.rwdArea.data.labels = labels;
+    charts.rwdArea.data.datasets[0].data = sc.tp;
+    charts.rwdArea.data.datasets[1].data = sc.ub;
+    charts.rwdArea.data.datasets[2].data = sc.qp;
+    charts.rwdArea.data.datasets[3].data = sc.fa;
+    charts.rwdArea.data.datasets[4].data = sc.tot.map(t=>t*200);
+    charts.rwdArea.update('none');
+  }
+
+  // cumulative
+  if (charts.rwdCum) {
+    let cum = 0;
+    charts.rwdCum.data.labels = labels;
+    charts.rwdCum.data.datasets[0].data = sc.tot.map(t=>{cum+=t;return Math.round(cum*100)/100;});
+    charts.rwdCum.update('none');
+  }
+
+  // reliability
+  if (charts.rwdRel) {
+    charts.rwdRel.data.labels = labels;
+    charts.rwdRel.data.datasets[0].data = sc.rel;
+    charts.rwdRel.update('none');
+  }
+
+  // FSM history
+  if (charts.fsmHist) {
+    charts.fsmHist.data.labels = labels;
+    charts.fsmHist.data.datasets[0].data = sc.rm.map(r=>r==='URLLC_ACTIVE'?1:0);
+    charts.fsmHist.update('none');
+  }
+
+  // step latency
+  if (charts.stepLat) {
+    charts.stepLat.data.labels = labels;
+    charts.stepLat.data.datasets[0].data = sc.lat;
+    charts.stepLat.data.datasets[1].data = labels.map(()=>1.0);
+    charts.stepLat.update('none');
+  }
+
+  // comparison reward
+  if (charts.cmpRew) {
+    const n = D.normal, b = D.baseline;
+    charts.cmpRew.data.labels = n.unc.map((_,i)=>i);
+    charts.cmpRew.data.datasets[0].data = n.tot;
+    charts.cmpRew.data.datasets[1].data = b.tot;
+    charts.cmpRew.update('none');
+  }
+}
+
+// ── LOG ──
+function renderLog() {
+  const sc = D[SC];
+  const filter = document.getElementById('log-filter')?.value||'all';
+  const steps = sc.path.map((p,i)=>({i,p,unc:sc.unc[i],trust:sc.trust[i],lat:sc.lat[i],act:sc.act[i],rm:sc.rm[i],ub:sc.ub[i],qp:sc.qp[i]}));
+  const filtered = steps.filter(s=>{
+    if(filter==='all') return true;
+    if(filter==='FALLBACK') return s.p.includes('FALLBACK');
+    if(filter==='SHIELDED') return s.p.includes('SHIELDED');
+    // Ensemble only: exclude baseline (which is single DQN not ensemble)
+    if(filter==='plain') return s.p==='ENSEMBLE' && SC !== 'baseline';
+    if(filter==='single') return SC === 'baseline';
+    return true;
+  });
+  document.getElementById('log-count').textContent = `${filtered.length} entries`;
+  // Show explanatory note for fallback scenario
+  const noteEl = document.getElementById('log-note');
+  if (noteEl) noteEl.style.display = (SC === 'fallback') ? 'block' : 'none';
+  const wrap = document.getElementById('log-wrap'); if(!wrap) return;
+  wrap.innerHTML = filtered.map(s=>{
+    const isBaseline = SC === 'baseline';
+    const cls = isBaseline?'pb':s.p==='ENSEMBLE'?'pe':s.p.includes('FALLBACK')?'pf':'ps';
+    const icon = isBaseline?'◈':s.p==='ENSEMBLE'?'◆':s.p.includes('FALLBACK')?'⚡':'🛡';
+    const short = isBaseline?'SINGLE DQN':s.p.replace('_CRITICAL_URLLC','').replace('ENSEMBLE_','');
+    const pen = s.qp < 0 ? `<span class="pen"> [PENALTY ${s.qp.toFixed(0)}]</span>` : '';
+    return `<div class="le"><span class="ts">t=${String(s.i).padStart(3,'0')}</span><span class="${cls}">${icon} ${short}</span><span style="color:#4a5070"> σ=${s.unc.toFixed(2)} trust=${s.trust.toFixed(2)} lat=${s.lat.toFixed(3)}ms U${s.act} RM:${s.rm||'N/A'} ub=${s.ub.toFixed(0)}</span>${pen}</div>`;
+  }).join('');
+}
+
+// ── COMPARISON ──
+function renderComparison() {
+  const methods = [
+    {name:'V1 Trustworthy RL',rel:PAPER.V1.rel,p99:PAPER.V1.p99,safety:'Shield + Fallback + Ens.',expl:'Full (reward decomp.)',best:true,col:'#4f9cf9'},
+    {name:'B1 Vanilla DQN',rel:PAPER.B1.rel,p99:PAPER.B1.p99,safety:'None',expl:'None',best:false,col:'#4ade80'},
+    {name:'B2 Constrained DQN',rel:PAPER.B2.rel,p99:PAPER.B2.p99,safety:'Lagrangian penalty',expl:'None',best:false,col:'#a78bfa'},
+    {name:'B3 XRL-SHAP',rel:PAPER.B3.rel,p99:PAPER.B3.p99,safety:'None',expl:'Partial (SHAP attr.)',best:false,col:'#f59e0b'},
+  ];
+  document.getElementById('cmp-grid').innerHTML = methods.map(m=>{
+    const relOk=m.rel>=99.99999,latOk=m.p99<1;
+    return `<div class="cmp-card${m.best?' best':''}">
+      <div class="cm" style="color:${m.col}">${m.name}</div>
+      <div class="cr"><span>URLLC Rel.</span><strong class="${relOk?'pass':'fail'}">${m.rel.toFixed(5)}%</strong></div>
+      <div class="cr"><span>P99 Latency</span><strong class="${latOk?'pass':'fail'}">${m.p99.toFixed(3)}ms</strong></div>
+      <div class="cr"><span>Safety</span><strong>${m.safety}</strong></div>
+      <div class="cr"><span>Explainability</span><strong>${m.expl}</strong></div>
+    </div>`;
+  }).join('');
+}
+
+// ── NETWORK INFO TOPOLOGY CANVAS ──
+function renderNetinfoCanvas() {
+  const canvas = document.getElementById('netinfo-canvas');
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 700;
+  canvas.width = W; canvas.height = 280;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0b0d14'; ctx.fillRect(0,0,W,280);
+
+  // Use normal scenario step 0 for static user layout
+  const sc = D ? D['normal'] : null;
+  const userTypes = sc ? sc.user_types : [1,1,1,0,1,1,1,0,1,0];
+  const TT_COL_L = {0:'#2dd4bf',1:'#4f9cf9',2:'#a78bfa'};
+  const TT_STR_L = {0:'eMBB',1:'URLLC',2:'mMTC'};
+
+  const cx = W*0.38, cy = 140;   // base station center
+  const userR = Math.min(W*0.28, 110);
+  const N = 10;
+
+  // ── Near-RT RIC box top-right ──
+  const ricX = W*0.68, ricY = 20, ricW = W*0.28, ricH = 60;
+  ctx.fillStyle = 'rgba(232,234,240,0.06)';
+  ctx.strokeStyle = '#e8eaf0'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(ricX, ricY, ricW, ricH, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e8eaf0'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Near-RT RIC', ricX+ricW/2, ricY+20);
+  ctx.fillStyle = '#4f9cf9'; ctx.font = '10px sans-serif';
+  ctx.fillText('Trustworthy RL xApp', ricX+ricW/2, ricY+36);
+  ctx.fillStyle = '#4a5070'; ctx.font = '9px sans-serif';
+  ctx.fillText('3 DQN agents · σ threshold 7.0', ricX+ricW/2, ricY+52);
+
+  // E2 interface arrow: RIC ↔ BS
+  const e2x1 = ricX, e2y1 = ricY+ricH/2;
+  const e2x2 = cx+20, e2y2 = cy-50;
+  ctx.strokeStyle = '#4f9cf9'; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(e2x1,e2y1); ctx.lineTo(e2x2,e2y2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#4f9cf9'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('E2 interface', (e2x1+e2x2)/2+10, (e2y1+e2y2)/2-6);
+
+  // ── RB pool bar at bottom ──
+  const rbY = 255, rbBarW = W*0.55, rbX = (W - rbBarW)/2;
+  ctx.fillStyle = '#1c2030'; ctx.beginPath(); ctx.roundRect(rbX,rbY,rbBarW,16,4); ctx.fill();
+  const rbW = rbBarW/20;
+  for (let i=0; i<20; i++) {
+    const col = i < 5 ? '#4f9cf9' : i < 16 ? '#2dd4bf' : '#a78bfa';
+    ctx.fillStyle = col+'aa';
+    ctx.beginPath(); ctx.roundRect(rbX+i*rbW+1, rbY+2, rbW-2, 12, 2); ctx.fill();
+  }
+  ctx.fillStyle = '#4a5070'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('20 Resource Blocks (shared pool)', W/2, rbY-4);
+  // Labels
+  ctx.fillStyle = '#4f9cf9'; ctx.font = 'bold 8px sans-serif';
+  ctx.fillText('URLLC', rbX+rbW*2.5, rbY+28);
+  ctx.fillStyle = '#2dd4bf';
+  ctx.fillText('eMBB', rbX+rbW*10, rbY+28);
+  ctx.fillStyle = '#a78bfa';
+  ctx.fillText('mMTC', rbX+rbW*18, rbY+28);
+
+  // ── Base station ──
+  // Tower
+  ctx.fillStyle = '#1c2030'; ctx.strokeStyle = '#4f9cf9'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx,cy-50); ctx.lineTo(cx-16,cy-30); ctx.lineTo(cx+16,cy-30); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#4f9cf9';
+  ctx.beginPath(); ctx.arc(cx, cy-52, 7, 0, Math.PI*2); ctx.fill();
+  // Glow
+  const glowG = ctx.createRadialGradient(cx,cy-50,0,cx,cy-50,40);
+  glowG.addColorStop(0,'rgba(79,156,249,0.15)'); glowG.addColorStop(1,'transparent');
+  ctx.fillStyle = glowG; ctx.fillRect(cx-40,cy-90,80,80);
+  // Signal arcs
+  [22,36,50].forEach((r,i) => {
+    ctx.strokeStyle = `rgba(79,156,249,${0.4-i*0.1})`; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(cx,cy-50,r,Math.PI*1.1,Math.PI*1.9); ctx.stroke();
+  });
+  ctx.fillStyle='#9399b2'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('gNB', cx, cy-18);
+
+  // ── Users arranged in circle ──
+  const userPositions = [];
+  for (let i=0; i<N; i++) {
+    const angle = (i/N)*Math.PI*2 - Math.PI/2;
+    userPositions.push({ x: cx+userR*Math.cos(angle), y: cy+userR*Math.sin(angle) });
+  }
+
+  // Draw connections first
+  userPositions.forEach((pos,i) => {
+    const tt = userTypes[i];
+    const col = TT_COL_L[tt]||'#888';
+    ctx.strokeStyle = col+'44'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(cx, cy-30); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+    ctx.setLineDash([]);
+    // Animated packet dots at 1/3 and 2/3 along the line
+    [0.35, 0.65].forEach((t,j) => {
+      const px = cx+(pos.x-cx)*t, py=(cy-30)+(pos.y-(cy-30))*t;
+      ctx.fillStyle = col+'88';
+      ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2); ctx.fill();
+    });
+  });
+
+  // Draw users
+  userPositions.forEach((pos,i) => {
+    const tt = userTypes[i];
+    const col = TT_COL_L[tt]||'#888';
+    // Outer ring
+    ctx.strokeStyle = col+'33'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,16,0,Math.PI*2); ctx.stroke();
+    // User circle
+    ctx.fillStyle = col+'22'; ctx.strokeStyle=col; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,12,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // User ID
+    ctx.fillStyle=col; ctx.font='bold 9px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('U'+i, pos.x, pos.y+3);
+    // Service type label
+    ctx.fillStyle='#4a5070'; ctx.font='8px sans-serif';
+    const labelR = 28;
+    const angle = (i/N)*Math.PI*2 - Math.PI/2;
+    ctx.fillText(TT_STR_L[tt], pos.x+Math.cos(angle)*labelR*0.5, pos.y+Math.sin(angle)*labelR*0.5+20);
+  });
+
+  // ── Interference cloud ──
+  ctx.strokeStyle='rgba(248,113,113,0.2)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  ctx.beginPath(); ctx.arc(cx+userR*0.7, cy-userR*0.5, 35, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(248,113,113,0.15)';
+  ctx.beginPath(); ctx.arc(cx+userR*0.7, cy-userR*0.5, 35, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f8717188'; ctx.font='8px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('I∈[0.3,0.5]', cx+userR*0.7, cy-userR*0.5+3);
+}
+
+</script>
+</body>
+</html>
