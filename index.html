@@ -169,6 +169,12 @@ select{background:var(--bg3);border:1px solid var(--border2);color:var(--text);p
 </style>
 </head>
 <body>
+<div id="loading-overlay" style="position:fixed;inset:0;background:#0b0d14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999">
+  <div style="font-size:18px;font-weight:600;color:#dde1f0">Trustworthy RL — 6G Demo</div>
+  <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:#4f9cf9;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:13px;color:#4a5070" id="loading-msg">Loading demo_data.json…</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <div class="app">
 <div class="topbar">
   <div class="logo">
@@ -643,12 +649,12 @@ window.addEventListener('DOMContentLoaded', () => {
       boot();
     })
     .catch(err => {
-      document.getElementById('loading-overlay').innerHTML =
-        `<div style="text-align:center;color:#f87171;padding:2rem">
-          <div style="font-size:18px;font-weight:600;margin-bottom:8px">⚠ Could not load demo_data.json</div>
-          <div style="font-size:13px;color:#9399b2">${err.message}</div>
-          <div style="font-size:12px;color:#4a5070;margin-top:8px">Place demo_data.json in the same folder as index.html</div>
-        </div>`;
+      const ol = document.getElementById('loading-overlay');
+      if (ol) ol.innerHTML = `<div style="text-align:center;color:#f87171;padding:2rem">
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px">⚠ Could not load demo_data.json</div>
+        <div style="font-size:13px;color:#9399b2">Make sure demo_data.json is in the same folder.<br>${err.message}</div>
+      </div>`;
+      console.error('Failed to load demo_data.json:', err);
     });
 });
 
